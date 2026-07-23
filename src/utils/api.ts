@@ -84,6 +84,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ password })
     }),
+  listUserClients: (id: string) => apiFetch<ClientRecord[]>(`/users/${id}/clients`),
+  updateUserClients: (id: string, clientIds: string[]) =>
+    apiFetch<{ success: boolean }>(`/users/${id}/clients`, {
+      method: 'PUT',
+      body: JSON.stringify({ clientIds })
+    }),
 
   listClients: () => apiFetch<ClientRecord[]>('/clients'),
   createClient: (payload: { name: string; logoUrl?: string; description?: string; status?: ClientRecord['status'] }) =>

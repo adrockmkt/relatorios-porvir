@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "dev:api": "node server/src/app.js"
+    "dev:api": "npm --prefix server run dev",
+    "install:api": "npm --prefix server install",
+    "install:all": "npm install && npm --prefix server install",
+    "check:api": "node --check server/src/app.js && node --check server/src/routes/auth.js && node --check server/src/routes/users.js && node --check server/src/routes/clients.js && node --check server/src/routes/reports.js && node --check server/src/routes/reportLinks.js && node --check server/src/routes/settings.js",
+    "check": "npm run build && npm run check:api"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",

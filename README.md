@@ -39,6 +39,7 @@ O sistema nao armazena arquivos de relatorio. Ele cadastra links externos que ap
 
 - [design.md](./design.md): especificacao visual e UX para IA e humanos
 - [design/DESIGN.md](./design/DESIGN.md): tokens e componentes do Ad Rock Console UI
+- [docs/LOCAL_DEVELOPMENT.md](./docs/LOCAL_DEVELOPMENT.md): como rodar o projeto localmente
 - [docs/PRODUCT.md](./docs/PRODUCT.md): visao funcional do produto
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md): arquitetura tecnica
 - [docs/DEPLOYMENT_LIGHTSAIL.md](./docs/DEPLOYMENT_LIGHTSAIL.md): plano de deploy em `relatorios.porvir.org`
@@ -60,6 +61,34 @@ O sistema nao armazena arquivos de relatorio. Ele cadastra links externos que ap
 8. Dashboard do cliente com filtros por periodo
 9. Branding editavel do topo
 10. Deploy no Lightsail em `relatorios.porvir.org`
+
+## Desenvolvimento local
+
+Instalar dependencias:
+
+```bash
+npm run install:all
+```
+
+Rodar API:
+
+```bash
+npm run dev:api
+```
+
+Rodar frontend:
+
+```bash
+npm run dev
+```
+
+Validar build e API:
+
+```bash
+npm run check
+```
+
+Detalhes em [docs/LOCAL_DEVELOPMENT.md](./docs/LOCAL_DEVELOPMENT.md).
 
 ## Observacao de seguranca
 

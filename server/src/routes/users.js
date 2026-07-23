@@ -92,4 +92,42 @@ router.post('/:id/reset-password', requireAdmin, async (req, res) => {
   res.json({ success: true });
 });
 
+router.get('/:id/clients', requireAdmin, async (req, res) => {
+  const result = await pool.query(
+    `select c.id, c.name, c.slug, c.logo_url, c.description, c.status, uc.created_at
+     from user_clients uc
+     join clients c on c.id = uc.client_id
+     where uc.user_id = $1
+     order by c.name`,
+    [req.params.id]
+  );
+
+  res.json(result.rows);
+});
+
+router.put('/:id/clients', requireAdmin, async (req, res) => {
+  const userId = req.params.id;
+  const clientIds = Array.isArray(req.body.clientIds) ? req.body.clientIds : [];
+
+  await pool.query('delete from user_clients where user_id = $1', [userId]);
+  for (const clientId of clientIds) {
+    await pool.query(
+      `insert into user_clients (user_id, client_id, created_by)
+       values ($1, $2, $3)
+       on conflict (user_id, client_id) do nothing`,
+      [userId, clientId, req.auth.user.id]
+    );
+  }
+
+  await logAudit({
+    req,
+    action: 'user_clients_updated',
+    entityType: 'user',
+    entityId: userId,
+    metadata: { clientIds }
+  });
+
+  res.json({ success: true });
+});
+
 export default router;
