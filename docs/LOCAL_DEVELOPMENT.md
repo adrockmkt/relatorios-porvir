@@ -46,6 +46,18 @@ createdb relatorios_porvir
 
 O schema e aplicado automaticamente quando a API sobe, porque `server/src/app.js` chama `ensureSchema()`.
 
+Tambem e possivel rodar migrations manualmente:
+
+```bash
+npm run db:migrate
+```
+
+Para popular dados iniciais de apoio, como o cliente Porvir e um relatorio exemplo em rascunho:
+
+```bash
+npm run db:seed
+```
+
 ## Rodar API
 
 ```bash
@@ -101,6 +113,21 @@ Checar somente API:
 ```bash
 npm run check:api
 ```
+
+## Migrations
+
+As migrations ficam em:
+
+```txt
+server/src/db/migrations/
+```
+
+Regras:
+
+- nunca editar migration ja aplicada em producao
+- criar uma nova migration para mudancas futuras
+- manter `server/src/db/schema.sql` como snapshot de leitura humana
+- rodar backup antes de migration em producao
 
 ## Observacoes
 

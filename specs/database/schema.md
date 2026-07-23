@@ -2,6 +2,16 @@
 
 Banco recomendado: PostgreSQL.
 
+## Operacao
+
+O schema de producao deve evoluir por migrations versionadas em:
+
+```txt
+server/src/db/migrations/
+```
+
+O arquivo `server/src/db/schema.sql` e apenas um snapshot legivel do estado atual.
+
 ## Tabelas
 
 ### users

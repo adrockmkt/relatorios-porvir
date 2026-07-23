@@ -1,6 +1,3 @@
--- Snapshot do schema atual para leitura humana.
--- A aplicacao executa migrations versionadas em server/src/db/migrations/.
-
 create table if not exists schema_migrations (
   id text primary key,
   applied_at timestamptz not null default now()
