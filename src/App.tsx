@@ -52,12 +52,21 @@ function App() {
   const [authStatus, setAuthStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [userNotice, setUserNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [clientNotice, setClientNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedAdminClientId, setSelectedAdminClientId] = useState('');
   const [assignedClientIds, setAssignedClientIds] = useState<string[]>([]);
+  const [assignedUserIds, setAssignedUserIds] = useState<string[]>([]);
   const [userPasswordForm, setUserPasswordForm] = useState('');
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [clientForm, setClientForm] = useState({ name: '', logoUrl: '', description: '' });
+  const [clientEditForm, setClientEditForm] = useState({
+    name: '',
+    logoUrl: '',
+    description: '',
+    status: 'active' as ClientRecord['status']
+  });
   const [reportForm, setReportForm] = useState({
     clientId: '',
     title: '',
@@ -100,6 +109,7 @@ function App() {
     return reports.filter((report) => report.client_id === selectedClientId);
   }, [reports, selectedClientId]);
   const selectedClient = clients.find((client) => client.id === selectedClientId) || clients[0] || null;
+  const selectedAdminClient = clients.find((client) => client.id === selectedAdminClientId) || null;
   const selectedUser = users.find((record) => record.id === selectedUserId) || null;
 
   useEffect(() => {
@@ -147,6 +157,13 @@ function App() {
     setUsers(usersResult);
     setSelectedClientId((current) => current || clientsResult[0]?.id || '');
     setReportForm((current) => ({ ...current, clientId: current.clientId || clientsResult[0]?.id || '' }));
+    if (currentUser && ['admin', 'editor'].includes(currentUser.role)) {
+      const stillSelectedClient = clientsResult.find((record) => record.id === selectedAdminClientId);
+      const nextSelectedClient = stillSelectedClient || clientsResult[0] || null;
+      if (nextSelectedClient && nextSelectedClient.id !== selectedAdminClientId) {
+        await handleSelectAdminClient(nextSelectedClient, { refreshData: false });
+      }
+    }
     if (currentUser?.role === 'admin') {
       const stillSelected = usersResult.find((record) => record.id === selectedUserId);
       const nextSelected = stillSelected || usersResult[0] || null;
@@ -201,9 +218,83 @@ function App() {
 
   async function handleCreateClient(event: React.FormEvent) {
     event.preventDefault();
-    await api.createClient(clientForm);
-    setClientForm({ name: '', logoUrl: '', description: '' });
-    await loadAppData();
+    setClientNotice(null);
+    try {
+      const result = await api.createClient(clientForm);
+      setClientForm({ name: '', logoUrl: '', description: '' });
+      await loadAppData();
+      setClientNotice({ type: 'success', text: 'Cliente cadastrado.' });
+      await handleSelectAdminClient({
+        id: result.id,
+        name: clientForm.name,
+        slug: '',
+        logo_url: clientForm.logoUrl || null,
+        description: clientForm.description || null,
+        status: 'active',
+        created_at: '',
+        updated_at: ''
+      }, { refreshData: false });
+    } catch (error) {
+      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel cadastrar cliente.' });
+    }
+  }
+
+  async function handleSelectAdminClient(record: ClientRecord, options: { refreshData?: boolean } = {}) {
+    setSelectedAdminClientId(record.id);
+    setClientEditForm({
+      name: record.name,
+      logoUrl: record.logo_url || '',
+      description: record.description || '',
+      status: record.status
+    });
+    try {
+      const assigned = await api.listClientUsers(record.id);
+      setAssignedUserIds(assigned.map((assignedUser) => assignedUser.id));
+      if (options.refreshData) await loadAppData();
+    } catch (error) {
+      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar usuarios do cliente.' });
+    }
+  }
+
+  async function handleUpdateClient(event: React.FormEvent) {
+    event.preventDefault();
+    if (!selectedAdminClientId) return;
+
+    setClientNotice(null);
+    try {
+      await api.updateClient(selectedAdminClientId, clientEditForm);
+      await api.updateClientUsers(selectedAdminClientId, assignedUserIds);
+      await loadAppData();
+      setClientNotice({ type: 'success', text: 'Cliente atualizado.' });
+    } catch (error) {
+      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel atualizar cliente.' });
+    }
+  }
+
+  async function handleArchiveOrDeleteClient() {
+    if (!selectedAdminClient) return;
+    const confirmed = window.confirm(`Remover o cliente ${selectedAdminClient.name}? Se houver relatorios, ele sera arquivado para preservar historico.`);
+    if (!confirmed) return;
+
+    setClientNotice(null);
+    try {
+      const result = await api.deleteClient(selectedAdminClient.id);
+      setSelectedAdminClientId('');
+      setAssignedUserIds([]);
+      setClientEditForm({ name: '', logoUrl: '', description: '', status: 'active' });
+      await loadAppData();
+      setClientNotice({ type: 'success', text: result.archived ? 'Cliente arquivado para preservar historico.' : 'Cliente excluido.' });
+    } catch (error) {
+      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel remover cliente.' });
+    }
+  }
+
+  function handleToggleAssignedUser(userId: string) {
+    setAssignedUserIds((current) =>
+      current.includes(userId)
+        ? current.filter((id) => id !== userId)
+        : [...current, userId]
+    );
   }
 
   async function handleCreateReport(event: React.FormEvent) {
@@ -407,29 +498,24 @@ function App() {
         {activeSection === 'dashboard' ? <Dashboard clients={clients} reports={visibleReports} selectedClient={selectedClient} selectedClientId={selectedClientId} onSelectClient={setSelectedClientId} /> : null}
 
         {activeSection === 'clients' ? (
-          <TwoColumn>
-            <Panel title="Clientes" icon={<ShieldCheck size={20} />}>
-              <RecordList
-                empty="Nenhum cliente cadastrado."
-                records={clients.map((client) => ({
-                  id: client.id,
-                  title: client.name,
-                  meta: `${client.status} · ${client.reports_count || 0} relatorios`,
-                  description: client.description || 'Sem descricao.'
-                }))}
-              />
-            </Panel>
-            {canManage ? (
-              <Panel title="Novo cliente" icon={<Plus size={20} />}>
-                <form onSubmit={handleCreateClient} className="adrock-form-shell space-y-4">
-                  <Input label="Nome" value={clientForm.name} onChange={(value) => setClientForm({ ...clientForm, name: value })} required />
-                  <Input label="Logo URL" value={clientForm.logoUrl} onChange={(value) => setClientForm({ ...clientForm, logoUrl: value })} />
-                  <Textarea label="Descricao" value={clientForm.description} onChange={(value) => setClientForm({ ...clientForm, description: value })} />
-                  <PrimaryButton label="Cadastrar cliente" />
-                </form>
-              </Panel>
-            ) : null}
-          </TwoColumn>
+          <ClientAdmin
+            clients={clients}
+            users={users}
+            canManage={canManage}
+            selectedClient={selectedAdminClient}
+            selectedClientId={selectedAdminClientId}
+            clientForm={clientForm}
+            clientEditForm={clientEditForm}
+            assignedUserIds={assignedUserIds}
+            notice={clientNotice}
+            onSelectClient={(record) => void handleSelectAdminClient(record)}
+            onCreateClient={handleCreateClient}
+            onChangeClientForm={setClientForm}
+            onChangeClientEditForm={setClientEditForm}
+            onToggleAssignedUser={handleToggleAssignedUser}
+            onUpdateClient={handleUpdateClient}
+            onArchiveOrDeleteClient={() => void handleArchiveOrDeleteClient()}
+          />
         ) : null}
 
         {activeSection === 'reports' ? (
@@ -506,6 +592,137 @@ function App() {
             </form>
           </Panel>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ClientAdmin({
+  clients,
+  users,
+  canManage,
+  selectedClient,
+  selectedClientId,
+  clientForm,
+  clientEditForm,
+  assignedUserIds,
+  notice,
+  onSelectClient,
+  onCreateClient,
+  onChangeClientForm,
+  onChangeClientEditForm,
+  onToggleAssignedUser,
+  onUpdateClient,
+  onArchiveOrDeleteClient
+}: {
+  clients: ClientRecord[];
+  users: UserRecord[];
+  canManage: boolean;
+  selectedClient: ClientRecord | null;
+  selectedClientId: string;
+  clientForm: { name: string; logoUrl: string; description: string };
+  clientEditForm: { name: string; logoUrl: string; description: string; status: ClientRecord['status'] };
+  assignedUserIds: string[];
+  notice: { type: 'success' | 'error'; text: string } | null;
+  onSelectClient: (record: ClientRecord) => void;
+  onCreateClient: (event: React.FormEvent) => void;
+  onChangeClientForm: (form: { name: string; logoUrl: string; description: string }) => void;
+  onChangeClientEditForm: (form: { name: string; logoUrl: string; description: string; status: ClientRecord['status'] }) => void;
+  onToggleAssignedUser: (userId: string) => void;
+  onUpdateClient: (event: React.FormEvent) => void;
+  onArchiveOrDeleteClient: () => void;
+}) {
+  return (
+    <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
+      <div className="space-y-6">
+        <Panel title="Clientes" icon={<ShieldCheck size={20} />}>
+          <AuthNotice status={notice} />
+          <div className="mt-4 space-y-3">
+            {clients.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum cliente cadastrado.</p>
+            ) : clients.map((client) => (
+              <button
+                key={client.id}
+                type="button"
+                onClick={() => onSelectClient(client)}
+                className={`w-full rounded-2xl border p-4 text-left transition ${selectedClientId === client.id ? 'border-orange-300 bg-orange-50' : 'border-sky-100 bg-white hover:border-orange-200'}`}
+              >
+                <div className="flex items-start gap-3">
+                  {client.logo_url ? <img src={client.logo_url} alt="" className="h-10 w-10 rounded-lg object-contain" /> : <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sm font-bold text-sky-700">{client.name.slice(0, 1).toUpperCase()}</span>}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-bold text-neutral-950">{client.name}</h3>
+                      <Badge>{client.status}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-neutral-600">{client.reports_count || 0} relatorios</p>
+                    <p className="mt-2 text-sm text-neutral-500">{client.description || 'Sem descricao.'}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </Panel>
+
+        {canManage ? (
+          <Panel title="Novo cliente" icon={<Plus size={20} />}>
+            <form onSubmit={onCreateClient} className="adrock-form-shell space-y-4">
+              <Input label="Nome" value={clientForm.name} onChange={(value) => onChangeClientForm({ ...clientForm, name: value })} required />
+              <Input label="Logo URL" value={clientForm.logoUrl} onChange={(value) => onChangeClientForm({ ...clientForm, logoUrl: value })} />
+              <Textarea label="Descricao" value={clientForm.description} onChange={(value) => onChangeClientForm({ ...clientForm, description: value })} />
+              <PrimaryButton label="Cadastrar cliente" />
+            </form>
+          </Panel>
+        ) : null}
+      </div>
+
+      <div className="space-y-6">
+        <Panel title="Editar cliente" icon={<Save size={20} />}>
+          {selectedClient && canManage ? (
+            <form onSubmit={onUpdateClient} className="adrock-form-shell space-y-5">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Input label="Nome" value={clientEditForm.name} onChange={(value) => onChangeClientEditForm({ ...clientEditForm, name: value })} required />
+                <Input label="Logo URL" value={clientEditForm.logoUrl} onChange={(value) => onChangeClientEditForm({ ...clientEditForm, logoUrl: value })} />
+                <div className="lg:col-span-2">
+                  <Textarea label="Descricao" value={clientEditForm.description} onChange={(value) => onChangeClientEditForm({ ...clientEditForm, description: value })} />
+                </div>
+                <Select label="Status" value={clientEditForm.status} onChange={(value) => onChangeClientEditForm({ ...clientEditForm, status: value as ClientRecord['status'] })} options={[
+                  { value: 'active', label: 'Ativo' },
+                  { value: 'inactive', label: 'Inativo' },
+                  { value: 'archived', label: 'Arquivado' }
+                ]} />
+              </div>
+
+              <div>
+                <h3 className="mb-3 text-sm font-bold text-neutral-700">Usuarios com acesso</h3>
+                {users.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-4 text-sm text-neutral-600">Cadastre usuarios antes de atribuir acesso.</p>
+                ) : (
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {users.map((record) => (
+                      <label key={record.id} className="flex items-center gap-3 rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
+                        <input
+                          type="checkbox"
+                          checked={assignedUserIds.includes(record.id)}
+                          onChange={() => onToggleAssignedUser(record.id)}
+                          className="h-4 w-4 accent-orange-500"
+                        />
+                        <span>{record.name} <span className="text-neutral-400">({record.role})</span></span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <PrimaryButton label="Salvar cliente" />
+                <ActionButton label="Arquivar ou excluir" onClick={onArchiveOrDeleteClient} danger icon={<Trash2 size={16} />} />
+              </div>
+              <p className="text-xs font-semibold text-neutral-500">Clientes com relatorios sao arquivados para preservar historico; clientes sem relatorios podem ser excluidos.</p>
+            </form>
+          ) : (
+            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um cliente para editar.</p>
+          )}
+        </Panel>
       </div>
     </div>
   );

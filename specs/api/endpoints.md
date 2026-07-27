@@ -23,10 +23,10 @@ Base path: `/api`
 
 - `GET /clients`
 - `POST /clients`
-- `GET /clients/:id`
 - `PATCH /clients/:id`
-- `PATCH /clients/:id/status`
 - `DELETE /clients/:id`
+- `GET /clients/:id/users`
+- `PUT /clients/:id/users`
 
 ## Permissoes usuario-cliente
 

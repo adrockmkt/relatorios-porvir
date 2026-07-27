@@ -58,6 +58,11 @@ Preferir:
 - arquivar cliente
 - arquivar relatorio
 
+Regra atual de clientes:
+
+- cliente com relatorios e arquivado
+- cliente sem relatorios pode ser excluido
+
 Permitir exclusao definitiva somente quando:
 
 - admin confirma

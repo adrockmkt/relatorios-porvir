@@ -105,6 +105,7 @@ export const api = {
     }),
   deleteClient: (id: string) =>
     apiFetch<{ success: boolean; archived?: boolean }>(`/clients/${id}`, { method: 'DELETE' }),
+  listClientUsers: (id: string) => apiFetch<UserRecord[]>(`/clients/${id}/users`),
   updateClientUsers: (id: string, userIds: string[]) =>
     apiFetch<{ success: boolean }>(`/clients/${id}/users`, {
       method: 'PUT',

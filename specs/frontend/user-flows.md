@@ -40,6 +40,21 @@
 4. Salva cliente ativo.
 5. Vincula usuarios.
 
+## Admin editando cliente
+
+1. Admin ou editor acessa Clientes.
+2. Seleciona um cliente na lista.
+3. Edita nome, logo, descricao ou status.
+4. Marca ou desmarca usuarios com acesso.
+5. Salva.
+
+## Admin removendo cliente
+
+1. Admin ou editor seleciona um cliente.
+2. Aciona arquivar ou excluir.
+3. Se houver relatorios, sistema arquiva.
+4. Se nao houver relatorios, sistema exclui.
+
 ## Admin cadastrando usuario
 
 1. Admin acessa Usuarios.
