@@ -11,11 +11,18 @@ router.use(requireAuth);
 
 router.post('/', requireEditorRole, async (req, res) => {
   const payload = normalizeLinkPayload(req.body);
+  payload.destinationType = payload.destinationType || 'other';
+  payload.sortOrder = payload.sortOrder ?? 0;
+  payload.status = payload.status || 'active';
   if (!payload.reportId || !payload.title || !payload.url) {
     return res.status(400).json({ error: 'Relatorio, titulo e URL sao obrigatorios.' });
   }
   if (!isValidUrl(payload.url)) {
     return res.status(400).json({ error: 'Informe uma URL https valida.' });
+  }
+  const validationError = validateLinkPayload(payload);
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
   }
 
   const clientId = await getReportClientId(payload.reportId);
@@ -39,6 +46,10 @@ router.patch('/:id', requireEditorRole, async (req, res) => {
   if (payload.url && !isValidUrl(payload.url)) {
     return res.status(400).json({ error: 'Informe uma URL https valida.' });
   }
+  const validationError = validateLinkPayload(payload, { partial: true });
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
 
   const currentClientId = await getReportLinkClientId(req.params.id);
   if (!currentClientId) {
@@ -56,16 +67,17 @@ router.patch('/:id', requireEditorRole, async (req, res) => {
 
   const result = await pool.query(
     `update report_links
-     set title = coalesce($2, title),
-         url = coalesce($3, url),
-         destination_type = coalesce($4, destination_type),
-         description = coalesce($5, description),
-         sort_order = coalesce($6, sort_order),
-         status = coalesce($7, status),
+     set report_id = coalesce($2, report_id),
+         title = coalesce($3, title),
+         url = coalesce($4, url),
+         destination_type = coalesce($5, destination_type),
+         description = coalesce($6, description),
+         sort_order = coalesce($7, sort_order),
+         status = coalesce($8, status),
          updated_at = now()
      where id = $1
      returning id`,
-    [req.params.id, payload.title, payload.url, payload.destinationType, payload.description, payload.sortOrder, payload.status]
+    [req.params.id, payload.reportId, payload.title, payload.url, payload.destinationType, payload.description, payload.sortOrder, payload.status]
   );
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'Link de relatorio nao encontrado.' });
@@ -87,15 +99,35 @@ router.delete('/:id', requireEditorRole, async (req, res) => {
 });
 
 function normalizeLinkPayload(body) {
+  const hasDestinationType = Object.prototype.hasOwnProperty.call(body, 'destinationType')
+    || Object.prototype.hasOwnProperty.call(body, 'destination_type');
+  const hasStatus = Object.prototype.hasOwnProperty.call(body, 'status');
+
   return {
     reportId: body.reportId || body.report_id || null,
     title: body.title ? String(body.title).trim() : null,
     url: body.url ? String(body.url).trim() : null,
-    destinationType: body.destinationType || body.destination_type || 'other',
+    destinationType: hasDestinationType ? body.destinationType || body.destination_type || 'other' : null,
     description: body.description === undefined ? null : String(body.description).trim(),
     sortOrder: body.sortOrder === undefined ? null : Number(body.sortOrder) || 0,
-    status: body.status || null
+    status: hasStatus ? body.status || null : null
   };
+}
+
+function validateLinkPayload(payload, { partial = false } = {}) {
+  if (!partial || payload.destinationType) {
+    if (payload.destinationType && !['looker_studio', 'google_drive', 'google_sheets', 'pdf', 'presentation', 'dashboard', 'document', 'other'].includes(payload.destinationType)) {
+      return 'Tipo de destino invalido.';
+    }
+  }
+
+  if (!partial || payload.status) {
+    if (payload.status && !['active', 'inactive'].includes(payload.status)) {
+      return 'Status de link invalido.';
+    }
+  }
+
+  return null;
 }
 
 function isValidUrl(url) {

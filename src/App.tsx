@@ -1,9 +1,47 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ExternalLink, FileText, KeyRound, Link2, LogOut, Plus, RefreshCw, Save, ShieldCheck, Trash2, Users } from 'lucide-react';
 import { api, setStoredToken } from './utils/api';
-import type { AuthUser, ClientRecord, ReportLinkDestinationType, ReportPeriodType, ReportRecord, ReportStatus, SettingsRecord, UserRecord } from './types';
+import type { AuthUser, ClientRecord, ReportLinkDestinationType, ReportLinkRecord, ReportPeriodType, ReportRecord, ReportStatus, SettingsRecord, UserRecord } from './types';
 
 type Section = 'dashboard' | 'clients' | 'reports' | 'users' | 'settings';
+
+type ReportFormState = {
+  clientId: string;
+  title: string;
+  description: string;
+  periodType: ReportPeriodType;
+  periodLabel: string;
+  startsAt: string;
+  endsAt: string;
+  status: ReportStatus;
+};
+
+type ReportFilterState = {
+  clientId: string;
+  periodType: string;
+  status: string;
+  search: string;
+  dateFrom: string;
+  dateTo: string;
+};
+
+type LinkFormState = {
+  reportId: string;
+  title: string;
+  url: string;
+  destinationType: ReportLinkDestinationType;
+  description: string;
+};
+
+type LinkEditFormState = {
+  id: string;
+  title: string;
+  url: string;
+  destinationType: ReportLinkDestinationType;
+  description: string;
+  sortOrder: string;
+  status: 'active' | 'inactive';
+};
 
 const DEFAULT_BRAND: SettingsRecord['brand'] = {
   appName: 'Porvir Reports Hub',
@@ -53,8 +91,11 @@ function App() {
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [userNotice, setUserNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [clientNotice, setClientNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [reportNotice, setReportNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedAdminClientId, setSelectedAdminClientId] = useState('');
+  const [selectedReportId, setSelectedReportId] = useState('');
+  const [selectedReportDetail, setSelectedReportDetail] = useState<ReportRecord | null>(null);
   const [assignedClientIds, setAssignedClientIds] = useState<string[]>([]);
   const [assignedUserIds, setAssignedUserIds] = useState<string[]>([]);
   const [userPasswordForm, setUserPasswordForm] = useState('');
@@ -77,12 +118,39 @@ function App() {
     endsAt: '',
     status: 'published' as ReportStatus
   });
+  const [reportEditForm, setReportEditForm] = useState({
+    clientId: '',
+    title: '',
+    description: '',
+    periodType: 'monthly' as ReportPeriodType,
+    periodLabel: '',
+    startsAt: '',
+    endsAt: '',
+    status: 'draft' as ReportStatus
+  });
+  const [reportFilters, setReportFilters] = useState({
+    clientId: '',
+    periodType: '',
+    status: '',
+    search: '',
+    dateFrom: '',
+    dateTo: ''
+  });
   const [linkForm, setLinkForm] = useState({
     reportId: '',
     title: '',
     url: '',
     destinationType: 'looker_studio' as ReportLinkDestinationType,
     description: ''
+  });
+  const [linkEditForm, setLinkEditForm] = useState({
+    id: '',
+    title: '',
+    url: '',
+    destinationType: 'looker_studio' as ReportLinkDestinationType,
+    description: '',
+    sortOrder: '0',
+    status: 'active' as 'active' | 'inactive'
   });
   const [userForm, setUserForm] = useState({
     name: '',
@@ -110,6 +178,7 @@ function App() {
   }, [reports, selectedClientId]);
   const selectedClient = clients.find((client) => client.id === selectedClientId) || clients[0] || null;
   const selectedAdminClient = clients.find((client) => client.id === selectedAdminClientId) || null;
+  const selectedReport = reports.find((report) => report.id === selectedReportId) || null;
   const selectedUser = users.find((record) => record.id === selectedUserId) || null;
 
   useEffect(() => {
@@ -149,7 +218,7 @@ function App() {
   async function loadAppData(currentUser = user) {
     const [clientsResult, reportsResult, usersResult] = await Promise.all([
       api.listClients(),
-      api.listReports(),
+      api.listReports(compactFilters(reportFilters)),
       currentUser?.role === 'admin' ? api.listUsers() : Promise.resolve([])
     ]);
     setClients(clientsResult);
@@ -157,6 +226,14 @@ function App() {
     setUsers(usersResult);
     setSelectedClientId((current) => current || clientsResult[0]?.id || '');
     setReportForm((current) => ({ ...current, clientId: current.clientId || clientsResult[0]?.id || '' }));
+    if (selectedReportId) {
+      const stillSelectedReport = reportsResult.find((record) => record.id === selectedReportId);
+      if (stillSelectedReport) {
+        await handleSelectReport(stillSelectedReport, { refreshData: false });
+      } else {
+        clearSelectedReport();
+      }
+    }
     if (currentUser && ['admin', 'editor'].includes(currentUser.role)) {
       const stillSelectedClient = clientsResult.find((record) => record.id === selectedAdminClientId);
       const nextSelectedClient = stillSelectedClient || clientsResult[0] || null;
@@ -307,25 +384,162 @@ function App() {
 
   async function handleCreateReport(event: React.FormEvent) {
     event.preventDefault();
-    await api.createReport({
-      clientId: reportForm.clientId,
-      title: reportForm.title,
-      description: reportForm.description,
-      periodType: reportForm.periodType,
-      periodLabel: reportForm.periodLabel,
-      startsAt: reportForm.startsAt || undefined,
-      endsAt: reportForm.endsAt || undefined,
-      status: reportForm.status
-    });
-    setReportForm((current) => ({ ...current, title: '', description: '', periodLabel: '' }));
-    await loadAppData();
+    setReportNotice(null);
+    try {
+      const result = await api.createReport(toReportPayload(reportForm));
+      setReportForm((current) => ({ ...current, title: '', description: '', periodLabel: '' }));
+      await loadAppData();
+      setReportNotice({ type: 'success', text: 'Relatorio cadastrado.' });
+      const created = await api.getReport(result.id);
+      await handleSelectReport(created, { refreshData: false });
+    } catch (error) {
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel cadastrar relatorio.' });
+    }
   }
 
   async function handleCreateLink(event: React.FormEvent) {
     event.preventDefault();
-    await api.createReportLink(linkForm);
-    setLinkForm((current) => ({ ...current, title: '', url: '', description: '' }));
-    await loadAppData();
+    setReportNotice(null);
+    try {
+      await api.createReportLink(linkForm);
+      setLinkForm((current) => ({ ...current, title: '', url: '', description: '' }));
+      await refreshSelectedReport();
+      await loadAppData();
+      setReportNotice({ type: 'success', text: 'Link adicionado.' });
+    } catch (error) {
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel adicionar link.' });
+    }
+  }
+
+  async function handleSelectReport(record: ReportRecord, options: { refreshData?: boolean } = {}) {
+    setSelectedReportId(record.id);
+    const detail = record.links ? record : await api.getReport(record.id);
+    setSelectedReportDetail(detail);
+    setReportEditForm({
+      clientId: detail.client_id,
+      title: detail.title,
+      description: detail.description || '',
+      periodType: detail.period_type,
+      periodLabel: detail.period_label || '',
+      startsAt: detail.starts_at || '',
+      endsAt: detail.ends_at || '',
+      status: detail.status
+    });
+    setLinkForm((current) => ({ ...current, reportId: detail.id }));
+    clearLinkEditForm();
+    if (options.refreshData) await loadAppData();
+  }
+
+  async function refreshSelectedReport() {
+    if (!selectedReportId) return;
+    const detail = await api.getReport(selectedReportId);
+    setSelectedReportDetail(detail);
+  }
+
+  function clearSelectedReport() {
+    setSelectedReportId('');
+    setSelectedReportDetail(null);
+    setReportEditForm({ clientId: '', title: '', description: '', periodType: 'monthly', periodLabel: '', startsAt: '', endsAt: '', status: 'draft' });
+    clearLinkEditForm();
+  }
+
+  function clearLinkEditForm() {
+    setLinkEditForm({ id: '', title: '', url: '', destinationType: 'looker_studio', description: '', sortOrder: '0', status: 'active' });
+  }
+
+  async function handleUpdateReport(event: React.FormEvent) {
+    event.preventDefault();
+    if (!selectedReportId) return;
+    setReportNotice(null);
+    try {
+      await api.updateReport(selectedReportId, toReportPayload(reportEditForm));
+      await refreshSelectedReport();
+      await loadAppData();
+      setReportNotice({ type: 'success', text: 'Relatorio atualizado.' });
+    } catch (error) {
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel atualizar relatorio.' });
+    }
+  }
+
+  async function handleArchiveReport() {
+    if (!selectedReport) return;
+    const confirmed = window.confirm(`Arquivar o relatorio "${selectedReport.title}"?`);
+    if (!confirmed) return;
+    setReportNotice(null);
+    try {
+      await api.deleteReport(selectedReport.id);
+      await loadAppData();
+      clearSelectedReport();
+      setReportNotice({ type: 'success', text: 'Relatorio arquivado.' });
+    } catch (error) {
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel arquivar relatorio.' });
+    }
+  }
+
+  function handleSelectLink(link: NonNullable<ReportRecord['links']>[number]) {
+    setLinkEditForm({
+      id: link.id,
+      title: link.title,
+      url: link.url,
+      destinationType: link.destination_type,
+      description: link.description || '',
+      sortOrder: String(link.sort_order || 0),
+      status: link.status
+    });
+  }
+
+  async function handleUpdateLink(event: React.FormEvent) {
+    event.preventDefault();
+    if (!linkEditForm.id || !selectedReportId) return;
+    setReportNotice(null);
+    try {
+      await api.updateReportLink(linkEditForm.id, {
+        reportId: selectedReportId,
+        title: linkEditForm.title,
+        url: linkEditForm.url,
+        destinationType: linkEditForm.destinationType,
+        description: linkEditForm.description,
+        sortOrder: Number(linkEditForm.sortOrder) || 0,
+        status: linkEditForm.status
+      });
+      await refreshSelectedReport();
+      await loadAppData();
+      setReportNotice({ type: 'success', text: 'Link atualizado.' });
+    } catch (error) {
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel atualizar link.' });
+    }
+  }
+
+  async function handleDeleteLink() {
+    if (!linkEditForm.id) return;
+    const confirmed = window.confirm(`Excluir o link "${linkEditForm.title}"?`);
+    if (!confirmed) return;
+    setReportNotice(null);
+    try {
+      await api.deleteReportLink(linkEditForm.id);
+      clearLinkEditForm();
+      await refreshSelectedReport();
+      await loadAppData();
+      setReportNotice({ type: 'success', text: 'Link excluido.' });
+    } catch (error) {
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel excluir link.' });
+    }
+  }
+
+  async function handleApplyReportFilters(event: React.FormEvent) {
+    event.preventDefault();
+    setReportNotice(null);
+    const filtered = await api.listReports(compactFilters(reportFilters));
+    setReports(filtered);
+    clearSelectedReport();
+  }
+
+  async function handleClearReportFilters() {
+    const emptyFilters = { clientId: '', periodType: '', status: '', search: '', dateFrom: '', dateTo: '' };
+    setReportFilters(emptyFilters);
+    const allReports = await api.listReports();
+    setReports(allReports);
+    clearSelectedReport();
   }
 
   async function handleCreateUser(event: React.FormEvent) {
@@ -528,40 +742,34 @@ function App() {
         ) : null}
 
         {activeSection === 'reports' ? (
-          <TwoColumn>
-            <Panel title="Relatorios" icon={<FileText size={20} />}>
-              <ReportList reports={reports} />
-            </Panel>
-            {canManage ? (
-              <div className="space-y-6">
-                <Panel title="Novo relatorio" icon={<Plus size={20} />}>
-                  <form onSubmit={handleCreateReport} className="adrock-form-shell space-y-4">
-                    <Select label="Cliente" value={reportForm.clientId} onChange={(value) => setReportForm({ ...reportForm, clientId: value })} options={clients.map((client) => ({ value: client.id, label: client.name }))} required />
-                    <Input label="Titulo" value={reportForm.title} onChange={(value) => setReportForm({ ...reportForm, title: value })} required />
-                    <Select label="Periodo" value={reportForm.periodType} onChange={(value) => setReportForm({ ...reportForm, periodType: value as ReportPeriodType })} options={Object.entries(periodLabels).map(([value, label]) => ({ value, label }))} />
-                    <Input label="Rotulo do periodo" value={reportForm.periodLabel} onChange={(value) => setReportForm({ ...reportForm, periodLabel: value })} placeholder="Ex.: Julho/2026" />
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Input label="Inicio" type="date" value={reportForm.startsAt} onChange={(value) => setReportForm({ ...reportForm, startsAt: value })} />
-                      <Input label="Fim" type="date" value={reportForm.endsAt} onChange={(value) => setReportForm({ ...reportForm, endsAt: value })} />
-                    </div>
-                    <Select label="Status" value={reportForm.status} onChange={(value) => setReportForm({ ...reportForm, status: value as ReportStatus })} options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} />
-                    <Textarea label="Descricao" value={reportForm.description} onChange={(value) => setReportForm({ ...reportForm, description: value })} />
-                    <PrimaryButton label="Cadastrar relatorio" />
-                  </form>
-                </Panel>
-                <Panel title="Adicionar link" icon={<Link2 size={20} />}>
-                  <form onSubmit={handleCreateLink} className="adrock-form-shell space-y-4">
-                    <Select label="Relatorio" value={linkForm.reportId} onChange={(value) => setLinkForm({ ...linkForm, reportId: value })} options={reports.map((report) => ({ value: report.id, label: report.title }))} required />
-                    <Input label="Titulo do link" value={linkForm.title} onChange={(value) => setLinkForm({ ...linkForm, title: value })} required />
-                    <Input label="URL" type="url" value={linkForm.url} onChange={(value) => setLinkForm({ ...linkForm, url: value })} required />
-                    <Select label="Tipo" value={linkForm.destinationType} onChange={(value) => setLinkForm({ ...linkForm, destinationType: value as ReportLinkDestinationType })} options={Object.entries(destinationLabels).map(([value, label]) => ({ value, label }))} />
-                    <Textarea label="Descricao" value={linkForm.description} onChange={(value) => setLinkForm({ ...linkForm, description: value })} />
-                    <PrimaryButton label="Adicionar link" />
-                  </form>
-                </Panel>
-              </div>
-            ) : null}
-          </TwoColumn>
+          <ReportAdmin
+            reports={reports}
+            clients={clients}
+            canManage={canManage}
+            selectedReportId={selectedReportId}
+            selectedReportDetail={selectedReportDetail}
+            reportForm={reportForm}
+            reportEditForm={reportEditForm}
+            reportFilters={reportFilters}
+            linkForm={linkForm}
+            linkEditForm={linkEditForm}
+            notice={reportNotice}
+            onSelectReport={(record) => void handleSelectReport(record)}
+            onCreateReport={handleCreateReport}
+            onUpdateReport={handleUpdateReport}
+            onArchiveReport={() => void handleArchiveReport()}
+            onChangeReportForm={setReportForm}
+            onChangeReportEditForm={setReportEditForm}
+            onChangeReportFilters={setReportFilters}
+            onApplyFilters={handleApplyReportFilters}
+            onClearFilters={() => void handleClearReportFilters()}
+            onCreateLink={handleCreateLink}
+            onChangeLinkForm={setLinkForm}
+            onSelectLink={handleSelectLink}
+            onChangeLinkEditForm={setLinkEditForm}
+            onUpdateLink={handleUpdateLink}
+            onDeleteLink={() => void handleDeleteLink()}
+          />
         ) : null}
 
         {activeSection === 'users' && canManageUsers ? (
@@ -602,6 +810,247 @@ function App() {
           </Panel>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function ReportAdmin({
+  reports,
+  clients,
+  canManage,
+  selectedReportId,
+  selectedReportDetail,
+  reportForm,
+  reportEditForm,
+  reportFilters,
+  linkForm,
+  linkEditForm,
+  notice,
+  onSelectReport,
+  onCreateReport,
+  onUpdateReport,
+  onArchiveReport,
+  onChangeReportForm,
+  onChangeReportEditForm,
+  onChangeReportFilters,
+  onApplyFilters,
+  onClearFilters,
+  onCreateLink,
+  onChangeLinkForm,
+  onSelectLink,
+  onChangeLinkEditForm,
+  onUpdateLink,
+  onDeleteLink
+}: {
+  reports: ReportRecord[];
+  clients: ClientRecord[];
+  canManage: boolean;
+  selectedReportId: string;
+  selectedReportDetail: ReportRecord | null;
+  reportForm: ReportFormState;
+  reportEditForm: ReportFormState;
+  reportFilters: ReportFilterState;
+  linkForm: LinkFormState;
+  linkEditForm: LinkEditFormState;
+  notice: { type: 'success' | 'error'; text: string } | null;
+  onSelectReport: (record: ReportRecord) => void;
+  onCreateReport: (event: React.FormEvent) => void;
+  onUpdateReport: (event: React.FormEvent) => void;
+  onArchiveReport: () => void;
+  onChangeReportForm: (form: ReportFormState) => void;
+  onChangeReportEditForm: (form: ReportFormState) => void;
+  onChangeReportFilters: (filters: ReportFilterState) => void;
+  onApplyFilters: (event: React.FormEvent) => void;
+  onClearFilters: () => void;
+  onCreateLink: (event: React.FormEvent) => void;
+  onChangeLinkForm: (form: LinkFormState) => void;
+  onSelectLink: (link: ReportLinkRecord) => void;
+  onChangeLinkEditForm: (form: LinkEditFormState) => void;
+  onUpdateLink: (event: React.FormEvent) => void;
+  onDeleteLink: () => void;
+}) {
+  return (
+    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+      <div className="space-y-6">
+        <Panel title="Relatorios" icon={<FileText size={20} />}>
+          <AuthNotice status={notice} />
+          <form onSubmit={onApplyFilters} className="adrock-form-shell mt-4 space-y-3">
+            <Input label="Busca" value={reportFilters.search} onChange={(value) => onChangeReportFilters({ ...reportFilters, search: value })} placeholder="Titulo ou descricao" />
+            <Select label="Cliente" value={reportFilters.clientId} onChange={(value) => onChangeReportFilters({ ...reportFilters, clientId: value })} options={clients.map((client) => ({ value: client.id, label: client.name }))} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Select label="Periodo" value={reportFilters.periodType} onChange={(value) => onChangeReportFilters({ ...reportFilters, periodType: value })} options={Object.entries(periodLabels).map(([value, label]) => ({ value, label }))} />
+              <Select label="Status" value={reportFilters.status} onChange={(value) => onChangeReportFilters({ ...reportFilters, status: value })} options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} />
+              <Input label="De" type="date" value={reportFilters.dateFrom} onChange={(value) => onChangeReportFilters({ ...reportFilters, dateFrom: value })} />
+              <Input label="Ate" type="date" value={reportFilters.dateTo} onChange={(value) => onChangeReportFilters({ ...reportFilters, dateTo: value })} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <PrimaryButton label="Filtrar" />
+              <ActionButton label="Limpar" onClick={onClearFilters} />
+            </div>
+          </form>
+
+          <div className="mt-5 space-y-3">
+            {reports.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum relatorio encontrado.</p>
+            ) : reports.map((report) => (
+              <button
+                key={report.id}
+                type="button"
+                onClick={() => onSelectReport(report)}
+                className={`w-full rounded-2xl border p-4 text-left transition ${selectedReportId === report.id ? 'border-orange-300 bg-orange-50' : 'border-sky-100 bg-white hover:border-orange-200'}`}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-bold text-neutral-950">{report.title}</h3>
+                  <Badge>{statusLabels[report.status]}</Badge>
+                  <Badge>{periodLabels[report.period_type]}</Badge>
+                </div>
+                <p className="mt-1 text-sm text-neutral-600">{report.client_name} · {report.period_label || formatPeriod(report)}</p>
+                <p className="mt-2 text-sm font-semibold text-neutral-500">{report.links_count || 0} links</p>
+              </button>
+            ))}
+          </div>
+        </Panel>
+
+        {canManage ? (
+          <Panel title="Novo relatorio" icon={<Plus size={20} />}>
+            <ReportForm form={reportForm} clients={clients} onChange={onChangeReportForm} onSubmit={onCreateReport} submitLabel="Cadastrar relatorio" />
+          </Panel>
+        ) : null}
+      </div>
+
+      <div className="space-y-6">
+        <Panel title="Editar relatorio" icon={<Save size={20} />}>
+          {selectedReportDetail && canManage ? (
+            <div className="space-y-6">
+              <ReportForm form={reportEditForm} clients={clients} onChange={onChangeReportEditForm} onSubmit={onUpdateReport} submitLabel="Salvar relatorio" />
+              <div className="flex flex-wrap gap-3">
+                <ActionButton label="Arquivar relatorio" onClick={onArchiveReport} danger icon={<Trash2 size={16} />} />
+              </div>
+            </div>
+          ) : selectedReportDetail ? (
+            <ReportReadOnly report={selectedReportDetail} />
+          ) : (
+            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um relatorio.</p>
+          )}
+        </Panel>
+
+        <Panel title="Links do relatorio" icon={<Link2 size={20} />}>
+          {selectedReportDetail ? (
+            <div className="space-y-5">
+              <div className="space-y-2">
+                {selectedReportDetail.links?.length ? selectedReportDetail.links.map((link) => (
+                  <div key={link.id} className="rounded-2xl border border-sky-100 bg-white p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-bold text-neutral-950">{link.title}</h3>
+                          <Badge>{destinationLabels[link.destination_type]}</Badge>
+                          <Badge>{link.status === 'active' ? 'Ativo' : 'Inativo'}</Badge>
+                        </div>
+                        <p className="mt-1 break-all text-sm text-neutral-600">{link.url}</p>
+                        {link.description ? <p className="mt-2 text-sm text-neutral-700">{link.description}</p> : null}
+                      </div>
+                      <div className="flex gap-2">
+                        <a href={link.url} target="_blank" rel="noreferrer" className="rounded-xl border border-sky-200 bg-white p-2 text-neutral-700" title="Abrir link">
+                          <ExternalLink size={16} />
+                        </a>
+                        {canManage ? <button type="button" onClick={() => onSelectLink(link)} className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm font-bold text-neutral-700">Editar</button> : null}
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum link cadastrado neste relatorio.</p>
+                )}
+              </div>
+
+              {canManage ? (
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <div>
+                    <h3 className="mb-3 text-sm font-bold text-neutral-700">Adicionar link</h3>
+                    <LinkForm form={{ ...linkForm, reportId: selectedReportDetail.id }} onChange={(form) => onChangeLinkForm({ ...form, reportId: selectedReportDetail.id })} onSubmit={onCreateLink} submitLabel="Adicionar link" />
+                  </div>
+                  <div>
+                    <h3 className="mb-3 text-sm font-bold text-neutral-700">Editar link</h3>
+                    {linkEditForm.id ? (
+                      <div className="space-y-4">
+                        <LinkEditForm form={linkEditForm} onChange={onChangeLinkEditForm} onSubmit={onUpdateLink} />
+                        <ActionButton label="Excluir link" onClick={onDeleteLink} danger icon={<Trash2 size={16} />} />
+                      </div>
+                    ) : (
+                      <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um link para editar.</p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um relatorio para ver os links.</p>
+          )}
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+function ReportForm({ form, clients, onChange, onSubmit, submitLabel }: { form: ReportFormState; clients: ClientRecord[]; onChange: (form: ReportFormState) => void; onSubmit: (event: React.FormEvent) => void; submitLabel: string }) {
+  return (
+    <form onSubmit={onSubmit} className="adrock-form-shell space-y-4">
+      <Select label="Cliente" value={form.clientId} onChange={(value) => onChange({ ...form, clientId: value })} options={clients.map((client) => ({ value: client.id, label: client.name }))} required />
+      <Input label="Titulo" value={form.title} onChange={(value) => onChange({ ...form, title: value })} required />
+      <Select label="Periodo" value={form.periodType} onChange={(value) => onChange({ ...form, periodType: value as ReportPeriodType })} options={Object.entries(periodLabels).map(([value, label]) => ({ value, label }))} />
+      <Input label="Rotulo do periodo" value={form.periodLabel} onChange={(value) => onChange({ ...form, periodLabel: value })} placeholder="Ex.: Julho/2026" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Input label="Inicio" type="date" value={form.startsAt} onChange={(value) => onChange({ ...form, startsAt: value })} />
+        <Input label="Fim" type="date" value={form.endsAt} onChange={(value) => onChange({ ...form, endsAt: value })} />
+      </div>
+      <Select label="Status" value={form.status} onChange={(value) => onChange({ ...form, status: value as ReportStatus })} options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} />
+      <Textarea label="Descricao" value={form.description} onChange={(value) => onChange({ ...form, description: value })} />
+      <PrimaryButton label={submitLabel} />
+    </form>
+  );
+}
+
+function LinkForm({ form, onChange, onSubmit, submitLabel }: { form: LinkFormState; onChange: (form: LinkFormState) => void; onSubmit: (event: React.FormEvent) => void; submitLabel: string }) {
+  return (
+    <form onSubmit={onSubmit} className="adrock-form-shell space-y-4">
+      <Input label="Titulo do link" value={form.title} onChange={(value) => onChange({ ...form, title: value })} required />
+      <Input label="URL" type="url" value={form.url} onChange={(value) => onChange({ ...form, url: value })} required />
+      <Select label="Tipo" value={form.destinationType} onChange={(value) => onChange({ ...form, destinationType: value as ReportLinkDestinationType })} options={Object.entries(destinationLabels).map(([value, label]) => ({ value, label }))} />
+      <Textarea label="Descricao" value={form.description} onChange={(value) => onChange({ ...form, description: value })} />
+      <PrimaryButton label={submitLabel} />
+    </form>
+  );
+}
+
+function LinkEditForm({ form, onChange, onSubmit }: { form: LinkEditFormState; onChange: (form: LinkEditFormState) => void; onSubmit: (event: React.FormEvent) => void }) {
+  return (
+    <form onSubmit={onSubmit} className="adrock-form-shell space-y-4">
+      <Input label="Titulo do link" value={form.title} onChange={(value) => onChange({ ...form, title: value })} required />
+      <Input label="URL" type="url" value={form.url} onChange={(value) => onChange({ ...form, url: value })} required />
+      <Select label="Tipo" value={form.destinationType} onChange={(value) => onChange({ ...form, destinationType: value as ReportLinkDestinationType })} options={Object.entries(destinationLabels).map(([value, label]) => ({ value, label }))} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Input label="Ordem" type="number" value={form.sortOrder} onChange={(value) => onChange({ ...form, sortOrder: value })} />
+        <Select label="Status" value={form.status} onChange={(value) => onChange({ ...form, status: value as 'active' | 'inactive' })} options={[
+          { value: 'active', label: 'Ativo' },
+          { value: 'inactive', label: 'Inativo' }
+        ]} />
+      </div>
+      <Textarea label="Descricao" value={form.description} onChange={(value) => onChange({ ...form, description: value })} />
+      <PrimaryButton label="Salvar link" />
+    </form>
+  );
+}
+
+function ReportReadOnly({ report }: { report: ReportRecord }) {
+  return (
+    <div className="rounded-2xl border border-sky-100 bg-white p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-xl font-bold text-neutral-950">{report.title}</h2>
+        <Badge>{statusLabels[report.status]}</Badge>
+        <Badge>{periodLabels[report.period_type]}</Badge>
+      </div>
+      <p className="mt-2 text-sm text-neutral-600">{report.client_name} · {report.period_label || formatPeriod(report)}</p>
+      {report.description ? <p className="mt-3 text-sm text-neutral-700">{report.description}</p> : null}
     </div>
   );
 }
@@ -1157,6 +1606,30 @@ function formatPeriod(report: ReportRecord) {
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value));
+}
+
+function compactFilters(filters: ReportFilterState) {
+  return {
+    clientId: filters.clientId || undefined,
+    periodType: filters.periodType || undefined,
+    status: filters.status || undefined,
+    search: filters.search || undefined,
+    dateFrom: filters.dateFrom || undefined,
+    dateTo: filters.dateTo || undefined
+  };
+}
+
+function toReportPayload(form: ReportFormState) {
+  return {
+    clientId: form.clientId,
+    title: form.title,
+    description: form.description,
+    periodType: form.periodType,
+    periodLabel: form.periodLabel,
+    startsAt: form.startsAt || undefined,
+    endsAt: form.endsAt || undefined,
+    status: form.status
+  };
 }
 
 function normalizeBrand(brand: Partial<SettingsRecord['brand']>): SettingsRecord['brand'] {

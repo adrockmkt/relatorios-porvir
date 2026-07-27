@@ -44,6 +44,7 @@ O sistema nao armazena arquivos de relatorio. Ele cadastra links externos que ap
 - [docs/AUTHENTICATION.md](./docs/AUTHENTICATION.md): setup inicial, login, sessao e logout
 - [docs/USER_MANAGEMENT.md](./docs/USER_MANAGEMENT.md): cadastro, edicao, status, senha e clientes atribuidos
 - [docs/CLIENT_MANAGEMENT.md](./docs/CLIENT_MANAGEMENT.md): cadastro, edicao, status, usuarios e arquivamento de clientes
+- [docs/REPORT_MANAGEMENT.md](./docs/REPORT_MANAGEMENT.md): relatorios, filtros, publicacao, arquivamento e links
 - [docs/PERMISSIONS.md](./docs/PERMISSIONS.md): matriz de acesso por perfil e cliente
 - [docs/PRODUCT.md](./docs/PRODUCT.md): visao funcional do produto
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md): arquitetura tecnica

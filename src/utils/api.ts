@@ -112,7 +112,7 @@ export const api = {
       body: JSON.stringify({ userIds })
     }),
 
-  listReports: (filters: { clientId?: string; periodType?: string; status?: string; search?: string } = {}) =>
+  listReports: (filters: { clientId?: string; periodType?: string; status?: string; search?: string; dateFrom?: string; dateTo?: string } = {}) =>
     apiFetch<ReportRecord[]>(`/reports${queryString(filters)}`),
   getReport: (id: string) => apiFetch<ReportRecord>(`/reports/${id}`),
   createReport: (payload: ReportPayload) =>

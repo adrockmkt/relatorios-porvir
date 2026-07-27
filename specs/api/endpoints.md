@@ -40,7 +40,6 @@ Base path: `/api`
 - `POST /reports`
 - `GET /reports/:id`
 - `PATCH /reports/:id`
-- `PATCH /reports/:id/status`
 - `DELETE /reports/:id`
 
 Filtros esperados em `GET /reports`:
@@ -54,17 +53,17 @@ Filtros esperados em `GET /reports`:
 
 ## Links de relatorio
 
-- `GET /reports/:reportId/links`
-- `POST /reports/:reportId/links`
+- `POST /report-links`
 - `PATCH /report-links/:id`
 - `DELETE /report-links/:id`
-- `PUT /reports/:reportId/links/order`
+
+Observacao: `GET /reports/:id` retorna os links do relatorio no campo `links`.
 
 ## Configuracoes
 
 - `GET /settings/public-brand`
 - `GET /settings`
-- `PATCH /settings/brand`
+- `PUT /settings/brand`
 
 ## Auditoria
 

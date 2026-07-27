@@ -37,6 +37,14 @@ router.get('/', async (req, res) => {
     params.push(req.query.status);
     filters.push(`r.status = $${params.length}`);
   }
+  if (req.query.dateFrom) {
+    params.push(req.query.dateFrom);
+    filters.push(`coalesce(r.starts_at, r.created_at::date) >= $${params.length}`);
+  }
+  if (req.query.dateTo) {
+    params.push(req.query.dateTo);
+    filters.push(`coalesce(r.ends_at, r.starts_at, r.created_at::date) <= $${params.length}`);
+  }
   if (req.query.search) {
     params.push(`%${String(req.query.search).toLowerCase()}%`);
     filters.push(`(lower(r.title) like $${params.length} or lower(coalesce(r.description, '')) like $${params.length})`);
@@ -62,8 +70,14 @@ router.get('/', async (req, res) => {
 
 router.post('/', requireEditorRole, async (req, res) => {
   const payload = normalizeReportPayload(req.body);
+  payload.status = payload.status || 'draft';
   if (!payload.clientId || !payload.title || !payload.periodType) {
     return res.status(400).json({ error: 'Cliente, titulo e periodo sao obrigatorios.' });
+  }
+
+  const validationError = validateReportPayload(payload);
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
   }
 
   if (!(await requireClientAccess(req, res, payload.clientId))) return;
@@ -107,12 +121,24 @@ router.get('/:id', async (req, res) => {
   if (!(await canAccessClient(req, report.client_id, report.status))) {
     return res.status(403).json({ error: 'Voce nao tem acesso a este relatorio.' });
   }
-  const links = await pool.query('select * from report_links where report_id = $1 order by sort_order, created_at', [req.params.id]);
+  const linkFilters = ['report_id = $1'];
+  if (req.auth.user.role === 'viewer') {
+    linkFilters.push("status = 'active'");
+  }
+  const links = await pool.query(
+    `select * from report_links where ${linkFilters.join(' and ')} order by sort_order, created_at`,
+    [req.params.id]
+  );
   res.json({ ...report, links: links.rows });
 });
 
 router.patch('/:id', requireEditorRole, async (req, res) => {
   const payload = normalizeReportPayload(req.body);
+  const validationError = validateReportPayload(payload, { partial: true });
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
+
   const currentClientId = await getReportClientId(req.params.id);
   if (!currentClientId) {
     return res.status(404).json({ error: 'Relatorio nao encontrado.' });
@@ -182,6 +208,30 @@ function normalizeReportPayload(body) {
     referenceMonth: body.referenceMonth || body.reference_month || null,
     status: body.status || null
   };
+}
+
+function validateReportPayload(payload, { partial = false } = {}) {
+  if (!partial || payload.periodType) {
+    if (payload.periodType && !['daily', 'weekly', 'monthly', 'quarterly', 'semiannual', 'annual'].includes(payload.periodType)) {
+      return 'Periodo de relatorio invalido.';
+    }
+  }
+
+  if (!partial || payload.status) {
+    if (payload.status && !['draft', 'published', 'archived'].includes(payload.status)) {
+      return 'Status de relatorio invalido.';
+    }
+  }
+
+  if (payload.startsAt && payload.endsAt && payload.startsAt > payload.endsAt) {
+    return 'A data inicial nao pode ser posterior a data final.';
+  }
+
+  if (payload.referenceMonth && (Number(payload.referenceMonth) < 1 || Number(payload.referenceMonth) > 12)) {
+    return 'Mes de referencia deve ficar entre 1 e 12.';
+  }
+
+  return null;
 }
 
 async function canAccessClient(req, clientId, reportStatus) {
