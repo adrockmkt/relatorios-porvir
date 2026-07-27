@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, FileText, Link2, LogOut, Plus, RefreshCw, ShieldCheck, Users } from 'lucide-react';
+import { ExternalLink, FileText, KeyRound, Link2, LogOut, Plus, RefreshCw, Save, ShieldCheck, Trash2, Users } from 'lucide-react';
 import { api, setStoredToken } from './utils/api';
 import type { AuthUser, ClientRecord, ReportLinkDestinationType, ReportPeriodType, ReportRecord, ReportStatus, SettingsRecord, UserRecord } from './types';
 
@@ -51,6 +51,10 @@ function App() {
   const [message, setMessage] = useState('');
   const [authStatus, setAuthStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [userNotice, setUserNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [assignedClientIds, setAssignedClientIds] = useState<string[]>([]);
+  const [userPasswordForm, setUserPasswordForm] = useState('');
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [clientForm, setClientForm] = useState({ name: '', logoUrl: '', description: '' });
@@ -77,6 +81,12 @@ function App() {
     password: '',
     role: 'viewer' as UserRecord['role']
   });
+  const [userEditForm, setUserEditForm] = useState({
+    name: '',
+    email: '',
+    role: 'viewer' as UserRecord['role'],
+    status: 'active' as UserRecord['status']
+  });
   const [brandForm, setBrandForm] = useState({
     appName: DEFAULT_BRAND.appName,
     slogan: DEFAULT_BRAND.slogan,
@@ -90,6 +100,7 @@ function App() {
     return reports.filter((report) => report.client_id === selectedClientId);
   }, [reports, selectedClientId]);
   const selectedClient = clients.find((client) => client.id === selectedClientId) || clients[0] || null;
+  const selectedUser = users.find((record) => record.id === selectedUserId) || null;
 
   useEffect(() => {
     void initialize();
@@ -136,6 +147,13 @@ function App() {
     setUsers(usersResult);
     setSelectedClientId((current) => current || clientsResult[0]?.id || '');
     setReportForm((current) => ({ ...current, clientId: current.clientId || clientsResult[0]?.id || '' }));
+    if (currentUser?.role === 'admin') {
+      const stillSelected = usersResult.find((record) => record.id === selectedUserId);
+      const nextSelected = stillSelected || usersResult[0] || null;
+      if (nextSelected && nextSelected.id !== selectedUserId) {
+        await handleSelectUser(nextSelected, { refreshData: false });
+      }
+    }
   }
 
   async function handleSetup(event: React.FormEvent) {
@@ -213,9 +231,104 @@ function App() {
 
   async function handleCreateUser(event: React.FormEvent) {
     event.preventDefault();
-    await api.createUser(userForm);
-    setUserForm({ name: '', email: '', password: '', role: 'viewer' });
-    await loadAppData();
+    setUserNotice(null);
+    try {
+      const result = await api.createUser(userForm);
+      setUserForm({ name: '', email: '', password: '', role: 'viewer' });
+      await loadAppData();
+      setUserNotice({ type: 'success', text: 'Usuario cadastrado.' });
+      const createdUser = { id: result.id, name: userForm.name, email: userForm.email, role: userForm.role, status: 'active' as const };
+      await handleSelectUser(createdUser, { refreshData: false });
+    } catch (error) {
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel cadastrar usuario.' });
+    }
+  }
+
+  async function handleSelectUser(record: Pick<UserRecord, 'id' | 'name' | 'email' | 'role' | 'status'>, options: { refreshData?: boolean } = {}) {
+    setSelectedUserId(record.id);
+    setUserEditForm({
+      name: record.name,
+      email: record.email,
+      role: record.role,
+      status: record.status
+    });
+    setUserPasswordForm('');
+    try {
+      const assigned = await api.listUserClients(record.id);
+      setAssignedClientIds(assigned.map((client) => client.id));
+      if (options.refreshData) await loadAppData();
+    } catch (error) {
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar clientes do usuario.' });
+    }
+  }
+
+  async function handleUpdateUser(event: React.FormEvent) {
+    event.preventDefault();
+    if (!selectedUserId) return;
+
+    setUserNotice(null);
+    try {
+      await api.updateUser(selectedUserId, userEditForm);
+      await api.updateUserClients(selectedUserId, assignedClientIds);
+      await loadAppData();
+      setUserNotice({ type: 'success', text: 'Usuario atualizado.' });
+    } catch (error) {
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel atualizar usuario.' });
+    }
+  }
+
+  async function handleResetUserPassword(event: React.FormEvent) {
+    event.preventDefault();
+    if (!selectedUserId) return;
+
+    setUserNotice(null);
+    try {
+      await api.resetUserPassword(selectedUserId, userPasswordForm);
+      setUserPasswordForm('');
+      setUserNotice({ type: 'success', text: 'Senha atualizada.' });
+    } catch (error) {
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel trocar a senha.' });
+    }
+  }
+
+  async function handleToggleSelectedUserStatus() {
+    if (!selectedUser) return;
+    const nextStatus = selectedUser.status === 'active' ? 'inactive' : 'active';
+    setUserNotice(null);
+    try {
+      await api.updateUser(selectedUser.id, { status: nextStatus });
+      await loadAppData();
+      setUserEditForm((current) => ({ ...current, status: nextStatus }));
+      setUserNotice({ type: 'success', text: nextStatus === 'active' ? 'Usuario reativado.' : 'Usuario inativado.' });
+    } catch (error) {
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel alterar status.' });
+    }
+  }
+
+  async function handleDeleteSelectedUser() {
+    if (!selectedUser) return;
+    const confirmed = window.confirm(`Excluir definitivamente o usuario ${selectedUser.name}? Esta acao remove sessoes e vinculos de cliente.`);
+    if (!confirmed) return;
+
+    setUserNotice(null);
+    try {
+      await api.deleteUser(selectedUser.id);
+      setSelectedUserId('');
+      setAssignedClientIds([]);
+      setUserEditForm({ name: '', email: '', role: 'viewer', status: 'active' });
+      await loadAppData();
+      setUserNotice({ type: 'success', text: 'Usuario excluido.' });
+    } catch (error) {
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel excluir usuario.' });
+    }
+  }
+
+  function handleToggleAssignedClient(clientId: string) {
+    setAssignedClientIds((current) =>
+      current.includes(clientId)
+        ? current.filter((id) => id !== clientId)
+        : [...current, clientId]
+    );
   }
 
   async function handleUpdateBrand(event: React.FormEvent) {
@@ -357,32 +470,28 @@ function App() {
         ) : null}
 
         {activeSection === 'users' && canManageUsers ? (
-          <TwoColumn>
-            <Panel title="Usuarios" icon={<Users size={20} />}>
-              <RecordList
-                empty="Nenhum usuario cadastrado."
-                records={users.map((record) => ({
-                  id: record.id,
-                  title: record.name,
-                  meta: `${record.email} · ${record.role} · ${record.status}`,
-                  description: 'Atribuicao de clientes entra na proxima tela administrativa.'
-                }))}
-              />
-            </Panel>
-            <Panel title="Novo usuario" icon={<Plus size={20} />}>
-              <form onSubmit={handleCreateUser} className="adrock-form-shell space-y-4">
-                <Input label="Nome" value={userForm.name} onChange={(value) => setUserForm({ ...userForm, name: value })} required />
-                <Input label="Email" type="email" value={userForm.email} onChange={(value) => setUserForm({ ...userForm, email: value })} required />
-                <Input label="Senha" type="password" value={userForm.password} onChange={(value) => setUserForm({ ...userForm, password: value })} required />
-                <Select label="Perfil" value={userForm.role} onChange={(value) => setUserForm({ ...userForm, role: value as UserRecord['role'] })} options={[
-                  { value: 'viewer', label: 'Viewer' },
-                  { value: 'editor', label: 'Editor' },
-                  { value: 'admin', label: 'Admin' }
-                ]} />
-                <PrimaryButton label="Cadastrar usuario" />
-              </form>
-            </Panel>
-          </TwoColumn>
+          <UserAdmin
+            users={users}
+            clients={clients}
+            currentUserId={user.id}
+            selectedUser={selectedUser}
+            selectedUserId={selectedUserId}
+            userForm={userForm}
+            userEditForm={userEditForm}
+            userPasswordForm={userPasswordForm}
+            assignedClientIds={assignedClientIds}
+            notice={userNotice}
+            onSelectUser={(record) => void handleSelectUser(record)}
+            onCreateUser={handleCreateUser}
+            onChangeUserForm={setUserForm}
+            onChangeUserEditForm={setUserEditForm}
+            onChangeUserPassword={setUserPasswordForm}
+            onToggleAssignedClient={handleToggleAssignedClient}
+            onUpdateUser={handleUpdateUser}
+            onResetPassword={handleResetUserPassword}
+            onToggleStatus={() => void handleToggleSelectedUserStatus()}
+            onDeleteUser={() => void handleDeleteSelectedUser()}
+          />
         ) : null}
 
         {activeSection === 'settings' && canManageUsers ? (
@@ -397,6 +506,157 @@ function App() {
             </form>
           </Panel>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+function UserAdmin({
+  users,
+  clients,
+  currentUserId,
+  selectedUser,
+  selectedUserId,
+  userForm,
+  userEditForm,
+  userPasswordForm,
+  assignedClientIds,
+  notice,
+  onSelectUser,
+  onCreateUser,
+  onChangeUserForm,
+  onChangeUserEditForm,
+  onChangeUserPassword,
+  onToggleAssignedClient,
+  onUpdateUser,
+  onResetPassword,
+  onToggleStatus,
+  onDeleteUser
+}: {
+  users: UserRecord[];
+  clients: ClientRecord[];
+  currentUserId: string;
+  selectedUser: UserRecord | null;
+  selectedUserId: string;
+  userForm: { name: string; email: string; password: string; role: UserRecord['role'] };
+  userEditForm: { name: string; email: string; role: UserRecord['role']; status: UserRecord['status'] };
+  userPasswordForm: string;
+  assignedClientIds: string[];
+  notice: { type: 'success' | 'error'; text: string } | null;
+  onSelectUser: (record: UserRecord) => void;
+  onCreateUser: (event: React.FormEvent) => void;
+  onChangeUserForm: (form: { name: string; email: string; password: string; role: UserRecord['role'] }) => void;
+  onChangeUserEditForm: (form: { name: string; email: string; role: UserRecord['role']; status: UserRecord['status'] }) => void;
+  onChangeUserPassword: (value: string) => void;
+  onToggleAssignedClient: (clientId: string) => void;
+  onUpdateUser: (event: React.FormEvent) => void;
+  onResetPassword: (event: React.FormEvent) => void;
+  onToggleStatus: () => void;
+  onDeleteUser: () => void;
+}) {
+  const roleOptions = [
+    { value: 'viewer', label: 'Viewer' },
+    { value: 'editor', label: 'Editor' },
+    { value: 'admin', label: 'Admin' }
+  ];
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
+      <div className="space-y-6">
+        <Panel title="Usuarios" icon={<Users size={20} />}>
+          <AuthNotice status={notice} />
+          <div className="mt-4 space-y-3">
+            {users.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum usuario cadastrado.</p>
+            ) : users.map((record) => (
+              <button
+                key={record.id}
+                type="button"
+                onClick={() => onSelectUser(record)}
+                className={`w-full rounded-2xl border p-4 text-left transition ${selectedUserId === record.id ? 'border-orange-300 bg-orange-50' : 'border-sky-100 bg-white hover:border-orange-200'}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-neutral-950">{record.name}</h3>
+                    <p className="mt-1 break-all text-sm font-semibold text-neutral-500">{record.email}</p>
+                  </div>
+                  <Badge>{record.status === 'active' ? 'Ativo' : 'Inativo'}</Badge>
+                </div>
+                <p className="mt-2 text-sm text-neutral-600">{record.role}</p>
+              </button>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Novo usuario" icon={<Plus size={20} />}>
+          <form onSubmit={onCreateUser} className="adrock-form-shell space-y-4">
+            <Input label="Nome" value={userForm.name} onChange={(value) => onChangeUserForm({ ...userForm, name: value })} required />
+            <Input label="Email" type="email" value={userForm.email} onChange={(value) => onChangeUserForm({ ...userForm, email: value })} required />
+            <Input label="Senha" type="password" value={userForm.password} onChange={(value) => onChangeUserForm({ ...userForm, password: value })} required minLength={8} />
+            <Select label="Perfil" value={userForm.role} onChange={(value) => onChangeUserForm({ ...userForm, role: value as UserRecord['role'] })} options={roleOptions} />
+            <PrimaryButton label="Cadastrar usuario" />
+          </form>
+        </Panel>
+      </div>
+
+      <div className="space-y-6">
+        <Panel title="Editar usuario" icon={<Save size={20} />}>
+          {selectedUser ? (
+            <form onSubmit={onUpdateUser} className="adrock-form-shell space-y-5">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Input label="Nome" value={userEditForm.name} onChange={(value) => onChangeUserEditForm({ ...userEditForm, name: value })} required />
+                <Input label="Email" type="email" value={userEditForm.email} onChange={(value) => onChangeUserEditForm({ ...userEditForm, email: value })} required />
+                <Select label="Perfil" value={userEditForm.role} onChange={(value) => onChangeUserEditForm({ ...userEditForm, role: value as UserRecord['role'] })} options={roleOptions} />
+                <Select label="Status" value={userEditForm.status} onChange={(value) => onChangeUserEditForm({ ...userEditForm, status: value as UserRecord['status'] })} options={[
+                  { value: 'active', label: 'Ativo' },
+                  { value: 'inactive', label: 'Inativo' }
+                ]} />
+              </div>
+
+              <div>
+                <h3 className="mb-3 text-sm font-bold text-neutral-700">Clientes atribuídos</h3>
+                {clients.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-4 text-sm text-neutral-600">Cadastre clientes antes de atribuir acesso.</p>
+                ) : (
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {clients.map((client) => (
+                      <label key={client.id} className="flex items-center gap-3 rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
+                        <input
+                          type="checkbox"
+                          checked={assignedClientIds.includes(client.id)}
+                          onChange={() => onToggleAssignedClient(client.id)}
+                          className="h-4 w-4 accent-orange-500"
+                        />
+                        <span>{client.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <PrimaryButton label="Salvar usuario" />
+                <ActionButton label={selectedUser.status === 'active' ? 'Inativar' : 'Reativar'} onClick={onToggleStatus} />
+                <ActionButton label="Excluir" onClick={onDeleteUser} danger disabled={selectedUser.id === currentUserId} icon={<Trash2 size={16} />} />
+              </div>
+              {selectedUser.id === currentUserId ? <p className="text-xs font-semibold text-neutral-500">O usuario logado nao pode excluir a propria conta.</p> : null}
+            </form>
+          ) : (
+            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um usuario para editar.</p>
+          )}
+        </Panel>
+
+        <Panel title="Trocar senha" icon={<KeyRound size={20} />}>
+          {selectedUser ? (
+            <form onSubmit={onResetPassword} className="adrock-form-shell space-y-4">
+              <p className="text-sm text-neutral-600">Defina uma nova senha para {selectedUser.name}.</p>
+              <Input label="Nova senha" type="password" value={userPasswordForm} onChange={onChangeUserPassword} required minLength={8} />
+              <PrimaryButton label="Atualizar senha" />
+            </form>
+          ) : (
+            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um usuario para trocar senha.</p>
+          )}
+        </Panel>
       </div>
     </div>
   );
@@ -589,6 +849,20 @@ function Select({ label, value, onChange, options, required = false }: {
 function PrimaryButton({ label, disabled = false }: { label: string; disabled?: boolean }) {
   return (
     <button className="inline-flex items-center justify-center rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-neutral-300" type="submit" disabled={disabled}>
+      {label}
+    </button>
+  );
+}
+
+function ActionButton({ label, onClick, danger = false, disabled = false, icon }: { label: string; onClick: () => void; danger?: boolean; disabled?: boolean; icon?: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-400 ${danger ? 'border-red-200 bg-white text-red-700 hover:bg-red-50' : 'border-sky-200 bg-white text-neutral-700 hover:border-orange-200 hover:bg-orange-50'}`}
+    >
+      {icon}
       {label}
     </button>
   );

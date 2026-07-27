@@ -23,6 +23,7 @@ export interface UserRecord {
   role: 'admin' | 'editor' | 'viewer';
   status: 'active' | 'inactive';
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface ClientRecord {

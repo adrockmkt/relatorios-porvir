@@ -27,6 +27,8 @@ Regras:
 - viewer nao acessa clientes sem vinculo
 - editor/admin podem cadastrar e editar relatorios
 - somente admin gerencia usuarios, permissoes e branding global
+- admin pode inativar usuarios para remover acesso sem apagar o cadastro
+- admin nao pode excluir a propria conta logada
 
 ## Links externos
 

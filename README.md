@@ -42,6 +42,7 @@ O sistema nao armazena arquivos de relatorio. Ele cadastra links externos que ap
 - [docs/LOCAL_DEVELOPMENT.md](./docs/LOCAL_DEVELOPMENT.md): como rodar o projeto localmente
 - [docs/DATABASE.md](./docs/DATABASE.md): migrations, seed e operacao do PostgreSQL
 - [docs/AUTHENTICATION.md](./docs/AUTHENTICATION.md): setup inicial, login, sessao e logout
+- [docs/USER_MANAGEMENT.md](./docs/USER_MANAGEMENT.md): cadastro, edicao, status, senha e clientes atribuidos
 - [docs/PRODUCT.md](./docs/PRODUCT.md): visao funcional do produto
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md): arquitetura tecnica
 - [docs/DEPLOYMENT_LIGHTSAIL.md](./docs/DEPLOYMENT_LIGHTSAIL.md): plano de deploy em `relatorios.porvir.org`

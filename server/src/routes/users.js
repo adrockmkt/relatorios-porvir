@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAdmin, requireAuth } from '../middleware/auth.js';
 import { logAudit } from '../utils/audit.js';
-import { generateId, hashPassword } from '../utils/security.js';
+import { generateId, hashPassword, isStrongEnoughPassword, isValidEmail, normalizeEmail } from '../utils/security.js';
 
 const router = Router();
 
@@ -10,7 +10,7 @@ router.use(requireAuth);
 
 router.get('/', requireAdmin, async (_req, res) => {
   const result = await pool.query(
-    'select id, name, email, role, status, created_at from users order by created_at desc'
+    'select id, name, email, role, status, created_at, updated_at from users order by created_at desc'
   );
 
   res.json(result.rows);
@@ -18,21 +18,36 @@ router.get('/', requireAdmin, async (_req, res) => {
 
 router.post('/', requireAdmin, async (req, res) => {
   const { name, email, password, role } = req.body;
-  if (!name || !email || !password || !role) {
+  const normalizedName = String(name || '').trim();
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedName || !normalizedEmail || !password || !role) {
     return res.status(400).json({ error: 'Nome, email, senha e perfil são obrigatórios.' });
+  }
+
+  if (!isValidEmail(normalizedEmail)) {
+    return res.status(400).json({ error: 'Informe um email válido.' });
+  }
+
+  if (!isStrongEnoughPassword(password)) {
+    return res.status(400).json({ error: 'A senha deve ter pelo menos 8 caracteres.' });
+  }
+
+  if (!['admin', 'editor', 'viewer'].includes(role)) {
+    return res.status(400).json({ error: 'Perfil inválido.' });
   }
 
   const userId = generateId();
   await pool.query(
     'insert into users (id, name, email, password_hash, role, status) values ($1, $2, $3, $4, $5, $6)',
-    [userId, name.trim(), email.trim().toLowerCase(), hashPassword(password), role, 'active']
+    [userId, normalizedName, normalizedEmail, hashPassword(password), role, 'active']
   );
   await logAudit({
     req,
     action: 'user_created',
     entityType: 'user',
     entityId: userId,
-    metadata: { email: email.trim().toLowerCase(), role }
+    metadata: { email: normalizedEmail, role }
   });
 
   res.status(201).json({ id: userId });
@@ -41,10 +56,27 @@ router.post('/', requireAdmin, async (req, res) => {
 router.patch('/:id', requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { name, email, role, status } = req.body;
-  const normalizedEmail = email === undefined ? null : String(email).trim().toLowerCase();
+  const normalizedName = name === undefined ? null : String(name).trim();
+  const normalizedEmail = email === undefined ? null : normalizeEmail(email);
+
+  if (normalizedName !== null && !normalizedName) {
+    return res.status(400).json({ error: 'Nome obrigatório.' });
+  }
 
   if (email !== undefined && !normalizedEmail) {
     return res.status(400).json({ error: 'Email obrigatório.' });
+  }
+
+  if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+    return res.status(400).json({ error: 'Informe um email válido.' });
+  }
+
+  if (role !== undefined && !['admin', 'editor', 'viewer'].includes(role)) {
+    return res.status(400).json({ error: 'Perfil inválido.' });
+  }
+
+  if (status !== undefined && !['active', 'inactive'].includes(status)) {
+    return res.status(400).json({ error: 'Status inválido.' });
   }
 
   if (normalizedEmail) {
@@ -61,16 +93,37 @@ router.patch('/:id', requireAdmin, async (req, res) => {
          role = coalesce($4, role),
          status = coalesce($5, status)
      where id = $1`,
-    [id, name?.trim(), normalizedEmail, role, status]
+    [id, normalizedName, normalizedEmail, role, status]
   );
   await logAudit({
     req,
     action: 'user_updated',
     entityType: 'user',
     entityId: id,
-    metadata: { name: name?.trim(), email: normalizedEmail, role, status }
+    metadata: { name: normalizedName, email: normalizedEmail, role, status }
   });
 
+  res.json({ success: true });
+});
+
+router.delete('/:id', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (id === req.auth.user.id) {
+    return res.status(400).json({ error: 'Voce nao pode excluir o proprio usuario logado.' });
+  }
+
+  const result = await pool.query('delete from users where id = $1 returning id, email', [id]);
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Usuario nao encontrado.' });
+  }
+
+  await logAudit({
+    req,
+    action: 'user_deleted',
+    entityType: 'user',
+    entityId: id,
+    metadata: { email: result.rows[0].email }
+  });
   res.json({ success: true });
 });
 

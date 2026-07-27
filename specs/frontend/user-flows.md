@@ -48,6 +48,26 @@
 4. Seleciona clientes permitidos.
 5. Salva.
 
+## Admin editando usuario
+
+1. Admin acessa Usuarios.
+2. Seleciona um usuario na lista.
+3. Edita nome, email, perfil ou status.
+4. Marca ou desmarca clientes atribuidos.
+5. Salva.
+
+## Admin trocando senha
+
+1. Admin seleciona um usuario.
+2. Informa nova senha.
+3. Salva a troca.
+
+## Admin removendo acesso
+
+1. Para preservar historico, admin inativa o usuario.
+2. Para erro de cadastro ou duplicidade, admin pode excluir usuario.
+3. O usuario logado nao pode excluir a propria conta.
+
 ## Edicao
 
 Todos os cadastros principais devem ter acao de editar:

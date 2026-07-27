@@ -79,6 +79,7 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(payload)
     }),
+  deleteUser: (id: string) => apiFetch<{ success: boolean }>(`/users/${id}`, { method: 'DELETE' }),
   resetUserPassword: (id: string, password: string) =>
     apiFetch<{ success: boolean }>(`/users/${id}/reset-password`, {
       method: 'POST',
