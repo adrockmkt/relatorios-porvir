@@ -12,7 +12,8 @@ export const env = {
   sessionTtlHours: Number(process.env.SESSION_TTL_HOURS || 24),
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
   rateLimitMax: Number(process.env.RATE_LIMIT_MAX || 300),
-  backupDir: process.env.BACKUP_DIR || '/var/backups/relatorios_porvir'
+  backupDir: process.env.BACKUP_DIR || '/var/backups/relatorios_porvir',
+  uploadDir: process.env.UPLOAD_DIR || 'uploads'
 };
 
 if (env.nodeEnv === 'production') {

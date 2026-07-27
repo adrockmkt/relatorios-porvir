@@ -12,6 +12,7 @@ import healthRoutes from './routes/health.js';
 import reportLinkRoutes from './routes/reportLinks.js';
 import reportRoutes from './routes/reports.js';
 import settingsRoutes from './routes/settings.js';
+import uploadRoutes from './routes/uploads.js';
 import userRoutes from './routes/users.js';
 
 const app = express();
@@ -27,6 +28,10 @@ app.use(rateLimit({
 }));
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '4mb' }));
+app.use('/uploads', express.static(env.uploadDir, {
+  index: false,
+  maxAge: env.nodeEnv === 'production' ? '30d' : 0
+}));
 
 app.get('/', (_req, res) => {
   res.json({
@@ -38,6 +43,7 @@ app.get('/', (_req, res) => {
 
 app.use('/api/health', healthRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/uploads', uploadRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/clients', clientRoutes);

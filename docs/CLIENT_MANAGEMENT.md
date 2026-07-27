@@ -13,7 +13,7 @@ Exemplo inicial:
 Campos:
 
 - nome
-- URL da logo
+- logo por URL ou upload de imagem
 - descricao
 - status
 
@@ -21,7 +21,7 @@ Regras:
 
 - nome e obrigatorio
 - slug e gerado automaticamente a partir do nome
-- URL de logo deve ser `https://`, caminho local iniciado por `/` ou data URL de imagem
+- logo pode ser enviada pelo formulario ou informada como `https://`, caminho local iniciado por `/` ou data URL de imagem
 - cliente novo nasce ativo por padrao
 - criacao gera auditoria `client_created`
 

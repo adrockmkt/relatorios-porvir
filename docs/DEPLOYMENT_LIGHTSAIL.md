@@ -61,6 +61,7 @@ Backend:
 - `DATABASE_URL=postgres://...`
 - `SESSION_TTL_HOURS=...`
 - `CORS_ORIGIN=https://relatorios.porvir.org`
+- `UPLOAD_DIR=/var/www/relatorios_porvir/uploads`
 
 Frontend:
 
@@ -90,6 +91,7 @@ Status em 2026-07-27:
 - porta local: `5102`
 - banco: `relatorios_porvir`
 - backup diario: `relatorios-porvir-backup.timer`
+- uploads de logos: `/var/www/relatorios_porvir/uploads`
 - health: `https://relatorios.porvir.org/api/health`
 
 Arquivos versionados para repetir a instalacao:

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, FileText, KeyRound, Link2, LogOut, Plus, RefreshCw, Save, ShieldCheck, Trash2, Users } from 'lucide-react';
+import { ExternalLink, FileText, KeyRound, Link2, LogOut, Plus, RefreshCw, Save, ShieldCheck, Trash2, Upload, Users } from 'lucide-react';
 import { api, setStoredToken } from './utils/api';
 import type { AuthUser, ClientRecord, ReportLinkDestinationType, ReportLinkRecord, ReportPeriodType, ReportRecord, ReportStatus, SettingsRecord, UserRecord } from './types';
 
@@ -652,6 +652,16 @@ function App() {
     setMessage('Marca atualizada.');
   }
 
+  async function handleUploadImage(file: File, onUploaded: (url: string) => void) {
+    const dataUrl = await readFileAsDataUrl(file);
+    const result = await api.uploadImage({
+      fileName: file.name,
+      mimeType: file.type,
+      dataUrl
+    });
+    onUploaded(result.url);
+  }
+
   if (loading) {
     return <FullScreenState title="Carregando" text="Preparando o portal de relatorios." />;
   }
@@ -738,6 +748,7 @@ function App() {
             onToggleAssignedUser={handleToggleAssignedUser}
             onUpdateClient={handleUpdateClient}
             onArchiveOrDeleteClient={() => void handleArchiveOrDeleteClient()}
+            onUploadImage={handleUploadImage}
           />
         ) : null}
 
@@ -802,7 +813,12 @@ function App() {
             <form onSubmit={handleUpdateBrand} className="adrock-form-shell grid gap-4 lg:grid-cols-3">
               <Input label="Titulo" value={brandForm.appName} onChange={(value) => setBrandForm({ ...brandForm, appName: value })} required />
               <Input label="Slogan" value={brandForm.slogan} onChange={(value) => setBrandForm({ ...brandForm, slogan: value })} />
-              <Input label="Logo URL" value={brandForm.topLogoUrl} onChange={(value) => setBrandForm({ ...brandForm, topLogoUrl: value })} />
+              <ImageUploadField
+                label="Logo do sistema"
+                value={brandForm.topLogoUrl}
+                onChange={(value) => setBrandForm({ ...brandForm, topLogoUrl: value })}
+                onUpload={(file) => handleUploadImage(file, (url) => setBrandForm((current) => ({ ...current, topLogoUrl: url })))}
+              />
               <div className="lg:col-span-3">
                 <PrimaryButton label="Salvar marca" />
               </div>
@@ -1072,7 +1088,8 @@ function ClientAdmin({
   onChangeClientEditForm,
   onToggleAssignedUser,
   onUpdateClient,
-  onArchiveOrDeleteClient
+  onArchiveOrDeleteClient,
+  onUploadImage
 }: {
   clients: ClientRecord[];
   users: UserRecord[];
@@ -1091,6 +1108,7 @@ function ClientAdmin({
   onToggleAssignedUser: (userId: string) => void;
   onUpdateClient: (event: React.FormEvent) => void;
   onArchiveOrDeleteClient: () => void;
+  onUploadImage: (file: File, onUploaded: (url: string) => void) => Promise<void>;
 }) {
   return (
     <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
@@ -1127,7 +1145,12 @@ function ClientAdmin({
           <Panel title="Novo cliente" icon={<Plus size={20} />}>
             <form onSubmit={onCreateClient} className="adrock-form-shell space-y-4">
               <Input label="Nome" value={clientForm.name} onChange={(value) => onChangeClientForm({ ...clientForm, name: value })} required />
-              <Input label="Logo URL" value={clientForm.logoUrl} onChange={(value) => onChangeClientForm({ ...clientForm, logoUrl: value })} />
+              <ImageUploadField
+                label="Logo do cliente"
+                value={clientForm.logoUrl}
+                onChange={(value) => onChangeClientForm({ ...clientForm, logoUrl: value })}
+                onUpload={(file) => onUploadImage(file, (url) => onChangeClientForm({ ...clientForm, logoUrl: url }))}
+              />
               <Textarea label="Descricao" value={clientForm.description} onChange={(value) => onChangeClientForm({ ...clientForm, description: value })} />
               <PrimaryButton label="Cadastrar cliente" />
             </form>
@@ -1141,7 +1164,12 @@ function ClientAdmin({
             <form onSubmit={onUpdateClient} className="adrock-form-shell space-y-5">
               <div className="grid gap-4 lg:grid-cols-2">
                 <Input label="Nome" value={clientEditForm.name} onChange={(value) => onChangeClientEditForm({ ...clientEditForm, name: value })} required />
-                <Input label="Logo URL" value={clientEditForm.logoUrl} onChange={(value) => onChangeClientEditForm({ ...clientEditForm, logoUrl: value })} />
+                <ImageUploadField
+                  label="Logo do cliente"
+                  value={clientEditForm.logoUrl}
+                  onChange={(value) => onChangeClientEditForm({ ...clientEditForm, logoUrl: value })}
+                  onUpload={(file) => onUploadImage(file, (url) => onChangeClientEditForm({ ...clientEditForm, logoUrl: url }))}
+                />
                 <div className="lg:col-span-2">
                   <Textarea label="Descricao" value={clientEditForm.description} onChange={(value) => onChangeClientEditForm({ ...clientEditForm, description: value })} />
                 </div>
@@ -1498,6 +1526,56 @@ function Input({ label, value, onChange, type = 'text', required = false, placeh
   );
 }
 
+function ImageUploadField({ label, value, onChange, onUpload }: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onUpload: (file: File) => Promise<void>;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setError('');
+    setUploading(true);
+    try {
+      await onUpload(file);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : 'Nao foi possivel enviar a imagem.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <Input label={`${label} URL`} value={value} onChange={onChange} placeholder="/uploads/logos/logo.png" />
+      <div className="flex flex-col gap-3 rounded-xl border border-sky-100 bg-white p-3 sm:flex-row sm:items-center">
+        {value ? (
+          <img src={value} alt="" className="h-14 w-14 rounded-lg border border-sky-100 object-contain" />
+        ) : (
+          <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-dashed border-sky-200 text-neutral-400">
+            <Upload size={18} />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-bold text-neutral-700 transition hover:border-orange-200 hover:bg-orange-50">
+            <Upload size={16} />
+            {uploading ? 'Enviando...' : 'Subir imagem'}
+            <input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" onChange={(event) => void handleFileChange(event)} disabled={uploading} />
+          </label>
+          <p className="mt-2 text-xs font-semibold text-neutral-500">PNG, JPG, WebP, GIF ou SVG ate 2 MB.</p>
+          {error ? <p className="mt-2 text-xs font-semibold text-red-700">{error}</p> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Textarea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="block">
@@ -1606,6 +1684,15 @@ function formatPeriod(report: ReportRecord) {
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value));
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Nao foi possivel ler o arquivo.'));
+    reader.readAsDataURL(file);
+  });
 }
 
 function compactFilters(filters: ReportFilterState) {

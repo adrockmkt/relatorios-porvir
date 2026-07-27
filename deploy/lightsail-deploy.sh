@@ -8,6 +8,7 @@ DB_USER=${DB_USER:-relatorios_porvir_app}
 APP_PORT=${APP_PORT:-5102}
 APP_DOMAIN=${APP_DOMAIN:-https://relatorios.porvir.org}
 BACKUP_DIR=${BACKUP_DIR:-/var/backups/relatorios_porvir}
+UPLOAD_DIR=${UPLOAD_DIR:-/var/www/relatorios_porvir/uploads}
 
 sudo mkdir -p "$APP_DIR"
 sudo tar -xzf "$ARCHIVE_PATH" -C "$APP_DIR"
@@ -40,6 +41,7 @@ SESSION_TTL_HOURS=24
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX=300
 BACKUP_DIR=$BACKUP_DIR
+UPLOAD_DIR=$UPLOAD_DIR
 ENV
 
 cat > /tmp/relatorios-vite.env <<ENV
@@ -61,4 +63,7 @@ npm --prefix server run migrate
 sudo mkdir -p "$BACKUP_DIR"
 sudo chown www-data:www-data "$BACKUP_DIR"
 sudo chmod 2750 "$BACKUP_DIR"
+sudo mkdir -p "$UPLOAD_DIR"
+sudo chown www-data:www-data "$UPLOAD_DIR"
+sudo chmod 2750 "$UPLOAD_DIR"
 sudo chown -R www-data:www-data "$APP_DIR"

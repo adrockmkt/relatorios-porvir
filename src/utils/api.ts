@@ -147,5 +147,10 @@ export const api = {
     apiFetch<{ success: boolean }>('/settings/brand', {
       method: 'PUT',
       body: JSON.stringify(payload)
+    }),
+  uploadImage: (payload: { fileName: string; mimeType: string; dataUrl: string }) =>
+    apiFetch<{ url: string }>('/uploads/images', {
+      method: 'POST',
+      body: JSON.stringify(payload)
     })
 };
