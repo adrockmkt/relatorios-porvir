@@ -8,15 +8,25 @@ Mateus confirmou:
 - podemos criar a estrutura de pastas que fizer mais sentido
 - o usuario do servidor e compartilhado com Mateus e possui permissoes necessarias
 
+Deploy realizado:
+
+- host SSH usado: `ubuntu@56.126.38.231`
+- dominio ativo: `https://relatorios.porvir.org`
+- app instalado em `/var/www/relatorios_porvir`
+- API systemd: `relatorios-porvir-api`
+- porta local da API: `5102`
+- banco PostgreSQL: `relatorios_porvir`
+- Nginx site: `/etc/nginx/sites-available/relatorios.porvir.org`
+- HTTPS emitido por Certbot para `relatorios.porvir.org`
+- backup diario ativo via `relatorios-porvir-backup.timer`
+
 ## Pendencias
 
-- validar propagacao DNS
-- confirmar acesso SSH
-- criar estrutura de deploy no servidor
-- instalar/configurar Node.js, PostgreSQL, Nginx e Certbot se ainda nao estiverem prontos
-- configurar HTTPS
-- configurar systemd da API
-- configurar backup diario do PostgreSQL
+- criar admin inicial no primeiro acesso
+- cadastrar cliente Porvir
+- cadastrar usuarios autorizados
+- publicar links iniciais de relatorios
+- testar login viewer com usuario atribuido ao Porvir
 
 ## Estrutura recomendada
 

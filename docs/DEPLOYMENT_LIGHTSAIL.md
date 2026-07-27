@@ -80,6 +80,27 @@ Frontend:
 10. Configurar backup diario
 11. Criar admin inicial no primeiro acesso
 
+## Deploy atual em producao
+
+Status em 2026-07-27:
+
+- URL: `https://relatorios.porvir.org`
+- app: `/var/www/relatorios_porvir`
+- API: `relatorios-porvir-api`
+- porta local: `5102`
+- banco: `relatorios_porvir`
+- backup diario: `relatorios-porvir-backup.timer`
+- health: `https://relatorios.porvir.org/api/health`
+
+Arquivos versionados para repetir a instalacao:
+
+- `deploy/lightsail-deploy.sh`
+- `deploy/nginx/relatorios.porvir.org`
+- `deploy/systemd/relatorios-porvir-api.service`
+- `deploy/systemd/relatorios-porvir-backup.service`
+- `deploy/systemd/relatorios-porvir-backup.timer`
+- `deploy/scripts/relatorios-porvir-backup.sh`
+
 ## Backup
 
 Backup diario com `pg_dump`, mantendo retencao minima de 14 a 30 dias.

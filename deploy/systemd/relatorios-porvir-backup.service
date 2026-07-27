@@ -1,0 +1,9 @@
+[Unit]
+Description=Porvir Reports Hub PostgreSQL backup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+ExecStart=/var/www/relatorios_porvir/deploy/scripts/relatorios-porvir-backup.sh
