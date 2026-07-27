@@ -17,6 +17,14 @@ server {
     proxy_set_header X-Forwarded-Proto $scheme;
   }
 
+  location /uploads/ {
+    alias /var/www/relatorios_porvir/uploads/;
+    try_files $uri =404;
+    access_log off;
+    expires 30d;
+    add_header Cache-Control "public, max-age=2592000";
+  }
+
   location / {
     try_files $uri $uri/ /index.html;
   }
