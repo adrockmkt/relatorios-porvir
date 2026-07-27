@@ -44,6 +44,7 @@ O sistema nao armazena arquivos de relatorio. Ele cadastra links externos que ap
 - [docs/PRODUCT.md](./docs/PRODUCT.md): visao funcional do produto
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md): arquitetura tecnica
 - [docs/DEPLOYMENT_LIGHTSAIL.md](./docs/DEPLOYMENT_LIGHTSAIL.md): plano de deploy em `relatorios.porvir.org`
+- [docs/INFRA_STATUS.md](./docs/INFRA_STATUS.md): status do subdominio e pendencias de servidor
 - [docs/SECURITY.md](./docs/SECURITY.md): seguranca, permissoes e riscos
 - [docs/ROADMAP.md](./docs/ROADMAP.md): fases de entrega
 - [specs/database/schema.md](./specs/database/schema.md): modelo de dados

@@ -6,7 +6,9 @@ Dominio alvo:
 
 `relatorios.porvir.org`
 
-O subdominio deve apontar para o IP publico da instancia Lightsail.
+Status em 2026-07-27: Mateus confirmou que o subdominio ja foi apontado para o IP da mesma instancia Lightsail.
+
+Observacao operacional: o usuario disponivel no servidor e o mesmo usado pelo Mateus e possui permissoes para criar a estrutura de pastas necessaria.
 
 ## Infraestrutura inicial
 
@@ -30,11 +32,25 @@ O subdominio deve apontar para o IP publico da instancia Lightsail.
 
 ```txt
 /opt/relatorios-porvir/
+  current/
+  releases/
+  shared/
+    .env
+    server.env
+    backups/
+    logs/
+```
+
+Para MVP, tambem e aceitavel uma estrutura mais simples:
+
+```txt
+/opt/relatorios-porvir/
   app/
-  server/
   backups/
   logs/
 ```
+
+Recomendacao: usar `current/`, `releases/` e `shared/` se quisermos rollback mais limpo; usar `app/` se a prioridade for velocidade inicial.
 
 ## Variaveis de ambiente
 
@@ -52,16 +68,17 @@ Frontend:
 
 ## Processo de deploy
 
-1. Clonar repositorio `adrockmkt/relatorios-porvir.git`
-2. Instalar dependencias do frontend e backend
-3. Configurar `.env`
-4. Rodar migracoes/schema do banco
-5. Buildar frontend
-6. Configurar Nginx
-7. Configurar systemd para API
-8. Ativar HTTPS com Certbot
-9. Configurar backup diario
-10. Criar admin inicial no primeiro acesso
+1. Criar estrutura de pastas em `/opt/relatorios-porvir/`
+2. Clonar repositorio `adrockmkt/relatorios-porvir.git`
+3. Instalar dependencias do frontend e backend
+4. Configurar `.env`
+5. Rodar migrations do banco
+6. Buildar frontend
+7. Configurar Nginx
+8. Configurar systemd para API
+9. Ativar HTTPS com Certbot
+10. Configurar backup diario
+11. Criar admin inicial no primeiro acesso
 
 ## Backup
 

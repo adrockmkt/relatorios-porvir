@@ -12,6 +12,10 @@ Dominio planejado:
 
 `relatorios.porvir.org`
 
+Status em 2026-07-27: Mateus confirmou que o subdominio ja aponta para o IP da mesma instancia.
+
+Servidor: usar o mesmo usuario do Mateus, com permissoes para criar a estrutura de pastas necessaria.
+
 Design system:
 
 `Ad Rock Console UI`, baseado no `utm_builder`.
@@ -48,7 +52,7 @@ Inicializar a base de codigo reaproveitando a arquitetura do `utm_builder`, mas 
 
 ## Checklist antes de liberar para cliente
 
-- DNS de `relatorios.porvir.org` apontando para Lightsail
+- DNS de `relatorios.porvir.org` apontando para Lightsail confirmado
 - HTTPS ativo
 - admin criado
 - Porvir cadastrado como cliente

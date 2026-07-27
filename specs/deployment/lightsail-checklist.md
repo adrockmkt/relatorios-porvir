@@ -2,12 +2,17 @@
 
 ## DNS
 
-- criar subdominio `relatorios.porvir.org`
-- apontar registro A para IP publico da instancia
-- aguardar propagacao
+- [x] criar subdominio `relatorios.porvir.org`
+- [x] apontar registro A para IP publico da mesma instancia
+- [ ] validar propagacao a partir da maquina local e do servidor
+
+Confirmado por Mateus em 2026-07-27.
 
 ## Servidor
 
+- confirmar acesso SSH
+- confirmar usuario compartilhado com permissoes
+- criar estrutura `/opt/relatorios-porvir/`
 - atualizar pacotes
 - instalar Node.js LTS
 - instalar PostgreSQL
@@ -19,7 +24,8 @@
 - clonar repo
 - configurar `.env`
 - instalar dependencias
-- rodar schema/migracoes
+- rodar migrations
+- rodar seed opcional
 - buildar frontend
 - configurar systemd da API
 - configurar Nginx
