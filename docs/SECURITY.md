@@ -8,9 +8,11 @@ Proteger o acesso ao catalogo de relatorios e limitar cada usuario aos clientes 
 
 - senha armazenada com hash forte
 - token/sessao com expiracao
+- duracao da sessao configuravel por `SESSION_TTL_HOURS`
 - logout remove sessao
 - usuarios inativos nao fazem login
 - setup inicial cria primeiro admin
+- setup inicial exige senha com pelo menos 8 caracteres
 
 ## Autorizacao
 

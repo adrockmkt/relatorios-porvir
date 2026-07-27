@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { logAudit } from '../utils/audit.js';
-import { createSessionExpiry, generateId, generateToken, hashPassword, verifyPassword } from '../utils/security.js';
+import { createSessionExpiry, generateId, generateToken, hashPassword, isStrongEnoughPassword, isValidEmail, normalizeEmail, verifyPassword } from '../utils/security.js';
 
 const router = Router();
 
@@ -19,15 +19,26 @@ router.post('/setup', async (req, res) => {
   }
 
   const { name, email, password } = req.body;
-  if (!name || !email || !password) {
+  const normalizedName = String(name || '').trim();
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedName || !normalizedEmail || !password) {
     return res.status(400).json({ error: 'Nome, email e senha são obrigatórios.' });
+  }
+
+  if (!isValidEmail(normalizedEmail)) {
+    return res.status(400).json({ error: 'Informe um email válido.' });
+  }
+
+  if (!isStrongEnoughPassword(password)) {
+    return res.status(400).json({ error: 'A senha deve ter pelo menos 8 caracteres.' });
   }
 
   const userId = generateId();
   const passwordHash = hashPassword(password);
   await pool.query(
     'insert into users (id, name, email, password_hash, role, status) values ($1, $2, $3, $4, $5, $6)',
-    [userId, name.trim(), email.trim().toLowerCase(), passwordHash, 'admin', 'active']
+    [userId, normalizedName, normalizedEmail, passwordHash, 'admin', 'active']
   );
   await logAudit({
     req,
@@ -35,23 +46,45 @@ router.post('/setup', async (req, res) => {
     action: 'setup_admin_created',
     entityType: 'user',
     entityId: userId,
-    metadata: { email: email.trim().toLowerCase() }
+    metadata: { email: normalizedEmail }
   });
 
+  const token = generateToken();
+  const expiresAt = createSessionExpiry();
+  await pool.query(
+    'insert into sessions (token, user_id, expires_at) values ($1, $2, $3)',
+    [token, userId, expiresAt]
+  );
+
   res.status(201).json({
-    message: 'Administrador inicial criado com sucesso.'
+    message: 'Administrador inicial criado com sucesso.',
+    token,
+    expiresAt,
+    user: {
+      id: userId,
+      name: normalizedName,
+      email: normalizedEmail,
+      role: 'admin',
+      isAdmin: true
+    }
   });
 });
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedEmail || !password) {
     return res.status(400).json({ error: 'Email e senha são obrigatórios.' });
+  }
+
+  if (!isValidEmail(normalizedEmail)) {
+    return res.status(400).json({ error: 'Informe um email válido.' });
   }
 
   const result = await pool.query(
     'select id, name, email, password_hash, role, status from users where email = $1',
-    [email.trim().toLowerCase()]
+    [normalizedEmail]
   );
 
   const user = result.rows[0];
@@ -60,12 +93,19 @@ router.post('/login', async (req, res) => {
       req,
       action: 'login_failed',
       entityType: 'session',
-      metadata: { email: email.trim().toLowerCase() }
+      metadata: { email: normalizedEmail }
     });
     return res.status(401).json({ error: 'Credenciais inválidas.' });
   }
 
   if (user.status !== 'active') {
+    await logAudit({
+      req,
+      actorUserId: user.id,
+      action: 'login_inactive_user',
+      entityType: 'session',
+      metadata: { email: user.email }
+    });
     return res.status(403).json({ error: 'Usuário inativo.' });
   }
 

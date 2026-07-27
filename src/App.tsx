@@ -49,6 +49,8 @@ function App() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [message, setMessage] = useState('');
+  const [authStatus, setAuthStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [clientForm, setClientForm] = useState({ name: '', logoUrl: '', description: '' });
@@ -138,23 +140,45 @@ function App() {
 
   async function handleSetup(event: React.FormEvent) {
     event.preventDefault();
-    await api.setupAdmin(authForm);
-    setSetupRequired(false);
-    setMessage('Administrador inicial criado. Entre para continuar.');
+    setAuthSubmitting(true);
+    setAuthStatus(null);
+    try {
+      const result = await api.setupAdmin(authForm);
+      setStoredToken(result.token);
+      setSetupRequired(false);
+      setUser(result.user);
+      setAuthForm({ name: '', email: '', password: '' });
+      await loadAppData(result.user);
+    } catch (error) {
+      setAuthStatus({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel concluir o setup.' });
+    } finally {
+      setAuthSubmitting(false);
+    }
   }
 
   async function handleLogin(event: React.FormEvent) {
     event.preventDefault();
-    const result = await api.login(loginForm);
-    setStoredToken(result.token);
-    setUser(result.user);
-    await loadAppData(result.user);
+    setAuthSubmitting(true);
+    setAuthStatus(null);
+    try {
+      const result = await api.login(loginForm);
+      setStoredToken(result.token);
+      setUser(result.user);
+      setLoginForm({ email: '', password: '' });
+      await loadAppData(result.user);
+    } catch (error) {
+      setStoredToken(null);
+      setAuthStatus({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel entrar.' });
+    } finally {
+      setAuthSubmitting(false);
+    }
   }
 
   async function handleLogout() {
     await api.logout().catch(() => null);
     setStoredToken(null);
     setUser(null);
+    setAuthStatus({ type: 'success', text: 'Voce saiu do sistema.' });
   }
 
   async function handleCreateClient(event: React.FormEvent) {
@@ -211,10 +235,12 @@ function App() {
       <AuthShell brand={brand}>
         <form onSubmit={handleSetup} className="adrock-form-shell space-y-4">
           <PanelTitle title="Setup inicial" text="Crie o primeiro administrador desta instalacao." />
+          <AuthNotice status={authStatus} />
           <Input label="Nome" value={authForm.name} onChange={(value) => setAuthForm({ ...authForm, name: value })} required />
           <Input label="Email" type="email" value={authForm.email} onChange={(value) => setAuthForm({ ...authForm, email: value })} required />
-          <Input label="Senha" type="password" value={authForm.password} onChange={(value) => setAuthForm({ ...authForm, password: value })} required />
-          <PrimaryButton label="Criar administrador" />
+          <Input label="Senha" type="password" value={authForm.password} onChange={(value) => setAuthForm({ ...authForm, password: value })} required minLength={8} />
+          <p className="text-xs font-semibold text-neutral-500">Use pelo menos 8 caracteres.</p>
+          <PrimaryButton label={authSubmitting ? 'Criando...' : 'Criar administrador'} disabled={authSubmitting} />
         </form>
       </AuthShell>
     );
@@ -225,10 +251,11 @@ function App() {
       <AuthShell brand={brand}>
         <form onSubmit={handleLogin} className="adrock-form-shell space-y-4">
           <PanelTitle title="Entrar" text="Acesse os relatorios publicados para os clientes atribuidos ao seu usuario." />
+          <AuthNotice status={authStatus} />
           {message ? <p className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">{message}</p> : null}
           <Input label="Email" type="email" value={loginForm.email} onChange={(value) => setLoginForm({ ...loginForm, email: value })} required />
           <Input label="Senha" type="password" value={loginForm.password} onChange={(value) => setLoginForm({ ...loginForm, password: value })} required />
-          <PrimaryButton label="Entrar" />
+          <PrimaryButton label={authSubmitting ? 'Entrando...' : 'Entrar'} disabled={authSubmitting} />
         </form>
       </AuthShell>
     );
@@ -515,18 +542,19 @@ function RecordList({ records, empty }: { records: Array<{ id: string; title: st
   );
 }
 
-function Input({ label, value, onChange, type = 'text', required = false, placeholder = '' }: {
+function Input({ label, value, onChange, type = 'text', required = false, placeholder = '', minLength }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
   required?: boolean;
   placeholder?: string;
+  minLength?: number;
 }) {
   return (
     <label className="block">
       <span className="adrock-field-label mb-1 block text-sm font-semibold">{label}</span>
-      <input className="w-full px-4 py-3" type={type} value={value} onChange={(event) => onChange(event.target.value)} required={required} placeholder={placeholder} />
+      <input className="w-full px-4 py-3" type={type} value={value} onChange={(event) => onChange(event.target.value)} required={required} placeholder={placeholder} minLength={minLength} />
     </label>
   );
 }
@@ -558,9 +586,9 @@ function Select({ label, value, onChange, options, required = false }: {
   );
 }
 
-function PrimaryButton({ label }: { label: string }) {
+function PrimaryButton({ label, disabled = false }: { label: string; disabled?: boolean }) {
   return (
-    <button className="inline-flex items-center justify-center rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-orange-600" type="submit">
+    <button className="inline-flex items-center justify-center rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-neutral-300" type="submit" disabled={disabled}>
       {label}
     </button>
   );
@@ -581,6 +609,16 @@ function PanelTitle({ title, text }: { title: string; text: string }) {
       <p className="mt-1 text-sm text-neutral-600">{text}</p>
     </div>
   );
+}
+
+function AuthNotice({ status }: { status: { type: 'success' | 'error'; text: string } | null }) {
+  if (!status) return null;
+
+  const classes = status.type === 'error'
+    ? 'border-red-200 bg-red-50 text-red-900'
+    : 'border-emerald-200 bg-emerald-50 text-emerald-900';
+
+  return <p className={`rounded-xl border px-4 py-3 text-sm font-semibold ${classes}`}>{status.text}</p>;
 }
 
 function Badge({ children }: { children: React.ReactNode }) {

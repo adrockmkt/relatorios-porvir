@@ -41,6 +41,7 @@ O sistema nao armazena arquivos de relatorio. Ele cadastra links externos que ap
 - [design/DESIGN.md](./design/DESIGN.md): tokens e componentes do Ad Rock Console UI
 - [docs/LOCAL_DEVELOPMENT.md](./docs/LOCAL_DEVELOPMENT.md): como rodar o projeto localmente
 - [docs/DATABASE.md](./docs/DATABASE.md): migrations, seed e operacao do PostgreSQL
+- [docs/AUTHENTICATION.md](./docs/AUTHENTICATION.md): setup inicial, login, sessao e logout
 - [docs/PRODUCT.md](./docs/PRODUCT.md): visao funcional do produto
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md): arquitetura tecnica
 - [docs/DEPLOYMENT_LIGHTSAIL.md](./docs/DEPLOYMENT_LIGHTSAIL.md): plano de deploy em `relatorios.porvir.org`

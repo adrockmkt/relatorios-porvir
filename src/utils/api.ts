@@ -55,7 +55,7 @@ function queryString(params: Record<string, string | undefined>) {
 export const api = {
   getSetupStatus: () => apiFetch<{ setupRequired: boolean }>('/auth/setup-status'),
   setupAdmin: (payload: { name: string; email: string; password: string }) =>
-    apiFetch<{ message: string }>('/auth/setup', {
+    apiFetch<{ message: string; token: string; expiresAt: string; user: AuthUser }>('/auth/setup', {
       method: 'POST',
       body: JSON.stringify(payload)
     }),

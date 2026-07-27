@@ -1,6 +1,5 @@
 import crypto from 'crypto';
-
-const SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
+import { env } from '../config/env.js';
 
 export function generateId() {
   return crypto.randomUUID();
@@ -32,5 +31,18 @@ export function verifyPassword(password, storedHash) {
 }
 
 export function createSessionExpiry() {
-  return new Date(Date.now() + SESSION_DURATION_MS).toISOString();
+  const ttlHours = Number.isFinite(env.sessionTtlHours) && env.sessionTtlHours > 0 ? env.sessionTtlHours : 24;
+  return new Date(Date.now() + ttlHours * 60 * 60 * 1000).toISOString();
+}
+
+export function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+export function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
+}
+
+export function isStrongEnoughPassword(password) {
+  return typeof password === 'string' && password.length >= 8;
 }

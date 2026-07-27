@@ -28,6 +28,12 @@ Backend:
 cp server/.env.example server/.env
 ```
 
+Sessao local padrao:
+
+```txt
+SESSION_TTL_HOURS=24
+```
+
 Banco local padrao:
 
 ```txt
