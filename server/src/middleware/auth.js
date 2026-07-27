@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js';
+import { requireAdminRole } from '../utils/permissions.js';
 
 export async function requireAuth(req, res, next) {
   const authorization = req.headers.authorization || '';
@@ -41,8 +42,5 @@ export async function requireAuth(req, res, next) {
 }
 
 export function requireAdmin(req, res, next) {
-  if (!req.auth?.user?.isAdmin) {
-    return res.status(403).json({ error: 'Acesso restrito ao administrador.' });
-  }
-  next();
+  return requireAdminRole(req, res, next);
 }

@@ -247,6 +247,12 @@ function App() {
       description: record.description || '',
       status: record.status
     });
+    if (user?.role !== 'admin') {
+      setAssignedUserIds([]);
+      if (options.refreshData) await loadAppData();
+      return;
+    }
+
     try {
       const assigned = await api.listClientUsers(record.id);
       setAssignedUserIds(assigned.map((assignedUser) => assignedUser.id));
@@ -263,7 +269,9 @@ function App() {
     setClientNotice(null);
     try {
       await api.updateClient(selectedAdminClientId, clientEditForm);
-      await api.updateClientUsers(selectedAdminClientId, assignedUserIds);
+      if (user?.role === 'admin') {
+        await api.updateClientUsers(selectedAdminClientId, assignedUserIds);
+      }
       await loadAppData();
       setClientNotice({ type: 'success', text: 'Cliente atualizado.' });
     } catch (error) {
@@ -502,6 +510,7 @@ function App() {
             clients={clients}
             users={users}
             canManage={canManage}
+            canAssignUsers={canManageUsers}
             selectedClient={selectedAdminClient}
             selectedClientId={selectedAdminClientId}
             clientForm={clientForm}
@@ -601,6 +610,7 @@ function ClientAdmin({
   clients,
   users,
   canManage,
+  canAssignUsers,
   selectedClient,
   selectedClientId,
   clientForm,
@@ -618,6 +628,7 @@ function ClientAdmin({
   clients: ClientRecord[];
   users: UserRecord[];
   canManage: boolean;
+  canAssignUsers: boolean;
   selectedClient: ClientRecord | null;
   selectedClientId: string;
   clientForm: { name: string; logoUrl: string; description: string };
@@ -692,26 +703,28 @@ function ClientAdmin({
                 ]} />
               </div>
 
-              <div>
-                <h3 className="mb-3 text-sm font-bold text-neutral-700">Usuarios com acesso</h3>
-                {users.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-4 text-sm text-neutral-600">Cadastre usuarios antes de atribuir acesso.</p>
-                ) : (
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {users.map((record) => (
-                      <label key={record.id} className="flex items-center gap-3 rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
-                        <input
-                          type="checkbox"
-                          checked={assignedUserIds.includes(record.id)}
-                          onChange={() => onToggleAssignedUser(record.id)}
-                          className="h-4 w-4 accent-orange-500"
-                        />
-                        <span>{record.name} <span className="text-neutral-400">({record.role})</span></span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {canAssignUsers ? (
+                <div>
+                  <h3 className="mb-3 text-sm font-bold text-neutral-700">Usuarios com acesso</h3>
+                  {users.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-4 text-sm text-neutral-600">Cadastre usuarios antes de atribuir acesso.</p>
+                  ) : (
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {users.map((record) => (
+                        <label key={record.id} className="flex items-center gap-3 rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
+                          <input
+                            type="checkbox"
+                            checked={assignedUserIds.includes(record.id)}
+                            onChange={() => onToggleAssignedUser(record.id)}
+                            className="h-4 w-4 accent-orange-500"
+                          />
+                          <span>{record.name} <span className="text-neutral-400">({record.role})</span></span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
 
               <div className="flex flex-wrap gap-3">
                 <PrimaryButton label="Salvar cliente" />

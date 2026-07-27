@@ -18,16 +18,19 @@ Pode:
 
 Pode:
 
-- criar e editar clientes, se liberado na politica final
-- criar e editar relatorios
-- criar e editar links
+- ver clientes atribuidos
+- criar cliente novo
+- editar clientes atribuidos
+- criar e editar relatorios de clientes atribuidos
+- criar e editar links de relatorios de clientes atribuidos
 - publicar e arquivar relatorios
 
 Nao pode:
 
 - gerenciar usuarios
 - alterar branding global
-- ver dados de clientes sem permissao, se a regra assim exigir
+- atribuir usuarios a clientes
+- ver dados de clientes sem permissao
 
 ### viewer
 
@@ -49,4 +52,6 @@ Toda consulta de relatorio deve validar se o usuario tem permissao sobre o `clie
 
 Admins podem ver todos os clientes.
 
-Editors podem ver todos ou apenas atribuidos, conforme decisao de produto antes da implementacao.
+Editors podem ver apenas clientes atribuidos. Quando um editor cria um cliente novo, o sistema atribui esse cliente ao editor automaticamente.
+
+Viewers podem ver apenas clientes atribuidos e relatorios publicados.

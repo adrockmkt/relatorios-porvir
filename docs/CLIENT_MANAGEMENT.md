@@ -35,6 +35,8 @@ Usuarios `admin` e `editor` podem editar:
 - status
 - usuarios com acesso
 
+Somente `admin` pode alterar usuarios com acesso. `editor` edita apenas os dados do cliente atribuido.
+
 Atualizacoes geram auditoria:
 
 - `client_updated`

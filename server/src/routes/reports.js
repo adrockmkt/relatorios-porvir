@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
 import { logAudit } from '../utils/audit.js';
+import { getReportClientId, isAdmin, requireClientAccess, requireEditorRole, userCanAccessClient } from '../utils/permissions.js';
 import { generateId } from '../utils/security.js';
 
 const router = Router();
@@ -12,12 +13,15 @@ router.get('/', async (req, res) => {
   const filters = [];
   const params = [];
 
-  if (req.auth.user.role === 'viewer') {
+  if (!isAdmin(req.auth.user)) {
     params.push(req.auth.user.id);
     filters.push(`exists (
       select 1 from user_clients uc
       where uc.client_id = r.client_id and uc.user_id = $${params.length}
     )`);
+  }
+
+  if (req.auth.user.role === 'viewer') {
     filters.push("r.status = 'published'");
   }
 
@@ -56,11 +60,13 @@ router.get('/', async (req, res) => {
   res.json(result.rows);
 });
 
-router.post('/', requireEditor, async (req, res) => {
+router.post('/', requireEditorRole, async (req, res) => {
   const payload = normalizeReportPayload(req.body);
   if (!payload.clientId || !payload.title || !payload.periodType) {
     return res.status(400).json({ error: 'Cliente, titulo e periodo sao obrigatorios.' });
   }
+
+  if (!(await requireClientAccess(req, res, payload.clientId))) return;
 
   const id = generateId();
   await pool.query(
@@ -105,9 +111,16 @@ router.get('/:id', async (req, res) => {
   res.json({ ...report, links: links.rows });
 });
 
-router.patch('/:id', requireEditor, async (req, res) => {
+router.patch('/:id', requireEditorRole, async (req, res) => {
   const payload = normalizeReportPayload(req.body);
-  await pool.query(
+  const currentClientId = await getReportClientId(req.params.id);
+  if (!currentClientId) {
+    return res.status(404).json({ error: 'Relatorio nao encontrado.' });
+  }
+  if (!(await requireClientAccess(req, res, currentClientId))) return;
+  if (payload.clientId && !(await requireClientAccess(req, res, payload.clientId))) return;
+
+  const result = await pool.query(
     `update reports
      set client_id = coalesce($2, client_id),
          title = coalesce($3, title),
@@ -121,7 +134,8 @@ router.patch('/:id', requireEditor, async (req, res) => {
          status = coalesce($11, status),
          published_at = case when $11 = 'published' and published_at is null then now() else published_at end,
          updated_at = now()
-     where id = $1`,
+     where id = $1
+     returning id`,
     [
       req.params.id,
       payload.clientId,
@@ -136,22 +150,24 @@ router.patch('/:id', requireEditor, async (req, res) => {
       payload.status
     ]
   );
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Relatorio nao encontrado.' });
+  }
   await logAudit({ req, action: 'report_updated', entityType: 'report', entityId: req.params.id, metadata: payload });
   res.json({ success: true });
 });
 
-router.delete('/:id', requireEditor, async (req, res) => {
+router.delete('/:id', requireEditorRole, async (req, res) => {
+  const currentClientId = await getReportClientId(req.params.id);
+  if (!currentClientId) {
+    return res.status(404).json({ error: 'Relatorio nao encontrado.' });
+  }
+  if (!(await requireClientAccess(req, res, currentClientId))) return;
+
   await pool.query("update reports set status = 'archived', updated_at = now() where id = $1", [req.params.id]);
   await logAudit({ req, action: 'report_archived', entityType: 'report', entityId: req.params.id });
   res.json({ success: true, archived: true });
 });
-
-function requireEditor(req, res, next) {
-  if (!['admin', 'editor'].includes(req.auth.user.role)) {
-    return res.status(403).json({ error: 'Acesso restrito a administradores e editores.' });
-  }
-  next();
-}
 
 function normalizeReportPayload(body) {
   return {
@@ -169,13 +185,9 @@ function normalizeReportPayload(body) {
 }
 
 async function canAccessClient(req, clientId, reportStatus) {
-  if (['admin', 'editor'].includes(req.auth.user.role)) return true;
-  if (reportStatus !== 'published') return false;
-  const result = await pool.query(
-    'select 1 from user_clients where user_id = $1 and client_id = $2',
-    [req.auth.user.id, clientId]
-  );
-  return result.rows.length > 0;
+  if (isAdmin(req.auth.user)) return true;
+  if (req.auth.user.role === 'viewer' && reportStatus !== 'published') return false;
+  return userCanAccessClient(req.auth.user, clientId);
 }
 
 export default router;
