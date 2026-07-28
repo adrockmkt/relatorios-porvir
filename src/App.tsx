@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, FileText, KeyRound, Link2, LogOut, Plus, RefreshCw, Save, ShieldCheck, Trash2, Upload, Users } from 'lucide-react';
+import { Copy, ExternalLink, FileText, KeyRound, Link2, LogOut, Plus, RefreshCw, Save, ShieldCheck, Trash2, Upload, Users } from 'lucide-react';
 import { api, setStoredToken } from './utils/api';
 import type { AuthUser, ClientRecord, ReportLinkDestinationType, ReportLinkRecord, ReportPeriodType, ReportRecord, ReportStatus, SettingsRecord, UserRecord } from './types';
 
@@ -1376,6 +1376,45 @@ function Dashboard({ clients, reports, selectedClient, selectedClientId, onSelec
   selectedClientId: string;
   onSelectClient: (id: string) => void;
 }) {
+  const [openedReport, setOpenedReport] = useState<ReportRecord | null>(null);
+  const [loadingReportId, setLoadingReportId] = useState('');
+  const [copyMessage, setCopyMessage] = useState('');
+
+  useEffect(() => {
+    const reportId = new URLSearchParams(window.location.search).get('report');
+    if (!reportId || openedReport?.id === reportId) return;
+
+    const report = reports.find((record) => record.id === reportId);
+    if (report) {
+      void handleOpenReport(report, { updateUrl: false });
+    }
+  }, [reports]);
+
+  async function handleOpenReport(report: ReportRecord, options: { updateUrl?: boolean } = {}) {
+    setLoadingReportId(report.id);
+    setCopyMessage('');
+    try {
+      const detail = report.links ? report : await api.getReport(report.id);
+      setOpenedReport(detail);
+      if (options.updateUrl !== false) {
+        window.history.replaceState(null, '', `?report=${report.id}`);
+      }
+    } finally {
+      setLoadingReportId('');
+    }
+  }
+
+  async function handleCopyReportLink(reportId: string) {
+    const url = `${window.location.origin}${window.location.pathname}?report=${reportId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyMessage('Link direto copiado.');
+    } catch {
+      window.prompt('Copie o link direto do relatorio:', url);
+      setCopyMessage('Link direto pronto para copiar.');
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
@@ -1398,13 +1437,27 @@ function Dashboard({ clients, reports, selectedClient, selectedClientId, onSelec
             </div>
           </div>
         ) : null}
-        <ReportList reports={reports} />
+        <ReportList
+          reports={reports}
+          openedReport={openedReport}
+          loadingReportId={loadingReportId}
+          copyMessage={copyMessage}
+          onOpenReport={(report) => void handleOpenReport(report)}
+          onCopyReportLink={(reportId) => void handleCopyReportLink(reportId)}
+        />
       </Panel>
     </div>
   );
 }
 
-function ReportList({ reports }: { reports: ReportRecord[] }) {
+function ReportList({ reports, openedReport, loadingReportId, copyMessage, onOpenReport, onCopyReportLink }: {
+  reports: ReportRecord[];
+  openedReport: ReportRecord | null;
+  loadingReportId: string;
+  copyMessage: string;
+  onOpenReport: (report: ReportRecord) => void;
+  onCopyReportLink: (reportId: string) => void;
+}) {
   if (reports.length === 0) {
     return <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum relatorio encontrado.</p>;
   }
@@ -1423,16 +1476,37 @@ function ReportList({ reports }: { reports: ReportRecord[] }) {
               <p className="mt-1 text-sm text-neutral-600">{report.client_name} · {report.period_label || formatPeriod(report)}</p>
               {report.description ? <p className="mt-2 text-sm text-neutral-700">{report.description}</p> : null}
             </div>
-            <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-neutral-700">{report.links_count || 0} links</span>
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-neutral-700">{report.links_count || 0} links</span>
+              <button type="button" onClick={() => onOpenReport(report)} className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-bold text-neutral-700 hover:border-orange-200 hover:bg-orange-50">
+                <Link2 size={16} />
+                {loadingReportId === report.id ? 'Abrindo...' : 'Ver links'}
+              </button>
+            </div>
           </div>
-          {report.links?.length ? (
-            <div className="mt-4 space-y-2">
-              {report.links.map((link) => (
+          {openedReport?.id === report.id ? (
+            <div className="mt-4 rounded-2xl border border-sky-100 bg-white/80 p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-bold text-neutral-700">Links publicados</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {copyMessage ? <span className="text-xs font-bold text-emerald-700">{copyMessage}</span> : null}
+                  <button type="button" onClick={() => onCopyReportLink(report.id)} className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-neutral-700 hover:border-orange-200 hover:bg-orange-50">
+                    <Copy size={14} />
+                    Copiar link direto
+                  </button>
+                </div>
+              </div>
+              {openedReport.links?.length ? openedReport.links.map((link) => (
                 <a key={link.id} href={link.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-neutral-800">
-                  <span>{link.title}</span>
+                  <span className="min-w-0 pr-3">
+                    <span className="block truncate">{link.title}</span>
+                    <span className="mt-1 block break-all text-xs font-semibold text-neutral-500">{destinationLabels[link.destination_type]}</span>
+                  </span>
                   <ExternalLink size={16} />
                 </a>
-              ))}
+              )) : (
+                <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-4 text-sm text-neutral-600">Nenhum link ativo neste relatorio.</p>
+              )}
             </div>
           ) : null}
         </article>
@@ -1595,7 +1669,7 @@ function Select({ label, value, onChange, options, required = false }: {
   return (
     <label className="block">
       <span className="adrock-field-label mb-1 block text-sm font-semibold">{label}</span>
-      <select className="w-full px-4 py-3" value={value} onChange={(event) => onChange(event.target.value)} required={required}>
+      <select className="w-full rounded-2xl border-2 border-sky-200 bg-white px-4 py-3 text-neutral-950 shadow-sm transition hover:border-orange-200 focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-100" value={value} onChange={(event) => onChange(event.target.value)} required={required}>
         <option value="">Selecione</option>
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
