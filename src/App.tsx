@@ -45,13 +45,13 @@ type LinkEditFormState = {
 
 const DEFAULT_BRAND: SettingsRecord['brand'] = {
   appName: 'Porvir Reports Hub',
-  slogan: 'Historico de relatorios e entregas Ad Rock',
+  slogan: 'Histórico de relatórios e entregas Ad Rock',
   topLogoUrl: `${import.meta.env.BASE_URL}adrock-logo.png`,
   topLogoSize: 56
 };
 
 const periodLabels: Record<ReportPeriodType, string> = {
-  daily: 'Diario',
+  daily: 'Diário',
   weekly: 'Semanal',
   monthly: 'Mensal',
   quarterly: 'Trimestral',
@@ -70,7 +70,7 @@ const destinationLabels: Record<ReportLinkDestinationType, string> = {
   google_drive: 'Google Drive',
   google_sheets: 'Google Sheets',
   pdf: 'PDF',
-  presentation: 'Apresentacao',
+  presentation: 'Apresentação',
   dashboard: 'Dashboard',
   document: 'Documento',
   other: 'Outro'
@@ -262,7 +262,7 @@ function App() {
       setAuthForm({ name: '', email: '', password: '' });
       await loadAppData(result.user);
     } catch (error) {
-      setAuthStatus({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel concluir o setup.' });
+      setAuthStatus({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível concluir o setup.' });
     } finally {
       setAuthSubmitting(false);
     }
@@ -280,7 +280,7 @@ function App() {
       await loadAppData(result.user);
     } catch (error) {
       setStoredToken(null);
-      setAuthStatus({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel entrar.' });
+      setAuthStatus({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível entrar.' });
     } finally {
       setAuthSubmitting(false);
     }
@@ -290,7 +290,7 @@ function App() {
     await api.logout().catch(() => null);
     setStoredToken(null);
     setUser(null);
-    setAuthStatus({ type: 'success', text: 'Voce saiu do sistema.' });
+    setAuthStatus({ type: 'success', text: 'Você saiu do sistema.' });
   }
 
   async function handleCreateClient(event: React.FormEvent) {
@@ -312,7 +312,7 @@ function App() {
         updated_at: ''
       }, { refreshData: false });
     } catch (error) {
-      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel cadastrar cliente.' });
+      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível cadastrar cliente.' });
     }
   }
 
@@ -335,7 +335,7 @@ function App() {
       setAssignedUserIds(assigned.map((assignedUser) => assignedUser.id));
       if (options.refreshData) await loadAppData();
     } catch (error) {
-      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar usuarios do cliente.' });
+      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível carregar usuários do cliente.' });
     }
   }
 
@@ -352,13 +352,13 @@ function App() {
       await loadAppData();
       setClientNotice({ type: 'success', text: 'Cliente atualizado.' });
     } catch (error) {
-      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel atualizar cliente.' });
+      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível atualizar cliente.' });
     }
   }
 
   async function handleArchiveOrDeleteClient() {
     if (!selectedAdminClient) return;
-    const confirmed = window.confirm(`Remover o cliente ${selectedAdminClient.name}? Se houver relatorios, ele sera arquivado para preservar historico.`);
+    const confirmed = window.confirm(`Remover o cliente ${selectedAdminClient.name}? Se houver relatórios, ele será arquivado para preservar histórico.`);
     if (!confirmed) return;
 
     setClientNotice(null);
@@ -368,9 +368,9 @@ function App() {
       setAssignedUserIds([]);
       setClientEditForm({ name: '', logoUrl: '', description: '', status: 'active' });
       await loadAppData();
-      setClientNotice({ type: 'success', text: result.archived ? 'Cliente arquivado para preservar historico.' : 'Cliente excluido.' });
+      setClientNotice({ type: 'success', text: result.archived ? 'Cliente arquivado para preservar histórico.' : 'Cliente excluído.' });
     } catch (error) {
-      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel remover cliente.' });
+      setClientNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível remover cliente.' });
     }
   }
 
@@ -389,11 +389,11 @@ function App() {
       const result = await api.createReport(toReportPayload(reportForm));
       setReportForm((current) => ({ ...current, title: '', description: '', periodLabel: '' }));
       await loadAppData();
-      setReportNotice({ type: 'success', text: 'Relatorio cadastrado.' });
+      setReportNotice({ type: 'success', text: 'Relatório cadastrado.' });
       const created = await api.getReport(result.id);
       await handleSelectReport(created, { refreshData: false });
     } catch (error) {
-      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel cadastrar relatorio.' });
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível cadastrar relatório.' });
     }
   }
 
@@ -407,7 +407,7 @@ function App() {
       await loadAppData();
       setReportNotice({ type: 'success', text: 'Link adicionado.' });
     } catch (error) {
-      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel adicionar link.' });
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível adicionar link.' });
     }
   }
 
@@ -421,8 +421,8 @@ function App() {
       description: detail.description || '',
       periodType: detail.period_type,
       periodLabel: detail.period_label || '',
-      startsAt: detail.starts_at || '',
-      endsAt: detail.ends_at || '',
+      startsAt: toDateInputValue(detail.starts_at),
+      endsAt: toDateInputValue(detail.ends_at),
       status: detail.status
     });
     setLinkForm((current) => ({ ...current, reportId: detail.id }));
@@ -455,24 +455,24 @@ function App() {
       await api.updateReport(selectedReportId, toReportPayload(reportEditForm));
       await refreshSelectedReport();
       await loadAppData();
-      setReportNotice({ type: 'success', text: 'Relatorio atualizado.' });
+      setReportNotice({ type: 'success', text: 'Relatório atualizado.' });
     } catch (error) {
-      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel atualizar relatorio.' });
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível atualizar relatório.' });
     }
   }
 
   async function handleArchiveReport() {
     if (!selectedReport) return;
-    const confirmed = window.confirm(`Arquivar o relatorio "${selectedReport.title}"?`);
+    const confirmed = window.confirm(`Arquivar o relatório "${selectedReport.title}"?`);
     if (!confirmed) return;
     setReportNotice(null);
     try {
       await api.deleteReport(selectedReport.id);
       await loadAppData();
       clearSelectedReport();
-      setReportNotice({ type: 'success', text: 'Relatorio arquivado.' });
+      setReportNotice({ type: 'success', text: 'Relatório arquivado.' });
     } catch (error) {
-      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel arquivar relatorio.' });
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível arquivar relatório.' });
     }
   }
 
@@ -506,7 +506,7 @@ function App() {
       await loadAppData();
       setReportNotice({ type: 'success', text: 'Link atualizado.' });
     } catch (error) {
-      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel atualizar link.' });
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível atualizar link.' });
     }
   }
 
@@ -520,9 +520,9 @@ function App() {
       clearLinkEditForm();
       await refreshSelectedReport();
       await loadAppData();
-      setReportNotice({ type: 'success', text: 'Link excluido.' });
+      setReportNotice({ type: 'success', text: 'Link excluído.' });
     } catch (error) {
-      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel excluir link.' });
+      setReportNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível excluir link.' });
     }
   }
 
@@ -549,11 +549,11 @@ function App() {
       const result = await api.createUser(userForm);
       setUserForm({ name: '', email: '', password: '', role: 'viewer' });
       await loadAppData();
-      setUserNotice({ type: 'success', text: 'Usuario cadastrado.' });
+      setUserNotice({ type: 'success', text: 'Usuário cadastrado.' });
       const createdUser = { id: result.id, name: userForm.name, email: userForm.email, role: userForm.role, status: 'active' as const };
       await handleSelectUser(createdUser, { refreshData: false });
     } catch (error) {
-      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel cadastrar usuario.' });
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível cadastrar usuário.' });
     }
   }
 
@@ -571,7 +571,7 @@ function App() {
       setAssignedClientIds(assigned.map((client) => client.id));
       if (options.refreshData) await loadAppData();
     } catch (error) {
-      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar clientes do usuario.' });
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível carregar clientes do usuário.' });
     }
   }
 
@@ -586,7 +586,7 @@ function App() {
       await loadAppData();
       setUserNotice({ type: 'success', text: 'Usuario atualizado.' });
     } catch (error) {
-      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel atualizar usuario.' });
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível atualizar usuário.' });
     }
   }
 
@@ -600,7 +600,7 @@ function App() {
       setUserPasswordForm('');
       setUserNotice({ type: 'success', text: 'Senha atualizada.' });
     } catch (error) {
-      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel trocar a senha.' });
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível trocar a senha.' });
     }
   }
 
@@ -614,13 +614,13 @@ function App() {
       setUserEditForm((current) => ({ ...current, status: nextStatus }));
       setUserNotice({ type: 'success', text: nextStatus === 'active' ? 'Usuario reativado.' : 'Usuario inativado.' });
     } catch (error) {
-      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel alterar status.' });
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível alterar status.' });
     }
   }
 
   async function handleDeleteSelectedUser() {
     if (!selectedUser) return;
-    const confirmed = window.confirm(`Excluir definitivamente o usuario ${selectedUser.name}? Esta acao remove sessoes e vinculos de cliente.`);
+    const confirmed = window.confirm(`Excluir definitivamente o usuário ${selectedUser.name}? Esta ação remove sessões e vínculos de cliente.`);
     if (!confirmed) return;
 
     setUserNotice(null);
@@ -630,9 +630,9 @@ function App() {
       setAssignedClientIds([]);
       setUserEditForm({ name: '', email: '', role: 'viewer', status: 'active' });
       await loadAppData();
-      setUserNotice({ type: 'success', text: 'Usuario excluido.' });
+      setUserNotice({ type: 'success', text: 'Usuário excluído.' });
     } catch (error) {
-      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel excluir usuario.' });
+      setUserNotice({ type: 'error', text: error instanceof Error ? error.message : 'Não foi possível excluir usuário.' });
     }
   }
 
@@ -663,14 +663,14 @@ function App() {
   }
 
   if (loading) {
-    return <FullScreenState title="Carregando" text="Preparando o portal de relatorios." />;
+    return <FullScreenState title="Carregando" text="Preparando o portal de relatórios." />;
   }
 
   if (setupRequired) {
     return (
       <AuthShell brand={brand}>
         <form onSubmit={handleSetup} className="adrock-form-shell space-y-4">
-          <PanelTitle title="Setup inicial" text="Crie o primeiro administrador desta instalacao." />
+          <PanelTitle title="Setup inicial" text="Crie o primeiro administrador desta instalação." />
           <AuthNotice status={authStatus} />
           <Input label="Nome" value={authForm.name} onChange={(value) => setAuthForm({ ...authForm, name: value })} required />
           <Input label="Email" type="email" value={authForm.email} onChange={(value) => setAuthForm({ ...authForm, email: value })} required />
@@ -686,7 +686,7 @@ function App() {
     return (
       <AuthShell brand={brand}>
         <form onSubmit={handleLogin} className="adrock-form-shell space-y-4">
-          <PanelTitle title="Entrar" text="Acesse os relatorios publicados para os clientes atribuidos ao seu usuario." />
+          <PanelTitle title="Entrar" text="Acesse os relatórios publicados para os clientes atribuídos ao seu usuário." />
           <AuthNotice status={authStatus} />
           {message ? <p className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">{message}</p> : null}
           <Input label="Email" type="email" value={loginForm.email} onChange={(value) => setLoginForm({ ...loginForm, email: value })} required />
@@ -722,8 +722,8 @@ function App() {
         <nav className="flex flex-wrap gap-2">
           <NavButton active={activeSection === 'dashboard'} label="Dashboard" onClick={() => setActiveSection('dashboard')} />
           <NavButton active={activeSection === 'clients'} label="Clientes" onClick={() => setActiveSection('clients')} />
-          <NavButton active={activeSection === 'reports'} label="Relatorios" onClick={() => setActiveSection('reports')} />
-          {canManageUsers ? <NavButton active={activeSection === 'users'} label="Usuarios" onClick={() => setActiveSection('users')} /> : null}
+          <NavButton active={activeSection === 'reports'} label="Relatórios" onClick={() => setActiveSection('reports')} />
+          {canManageUsers ? <NavButton active={activeSection === 'users'} label="Usuários" onClick={() => setActiveSection('users')} /> : null}
           {canManageUsers ? <NavButton active={activeSection === 'settings'} label="Marca" onClick={() => setActiveSection('settings')} /> : null}
         </nav>
 
@@ -811,7 +811,7 @@ function App() {
         {activeSection === 'settings' && canManageUsers ? (
           <Panel title="Marca do sistema" icon={<ShieldCheck size={20} />}>
             <form onSubmit={handleUpdateBrand} className="adrock-form-shell grid gap-4 lg:grid-cols-3">
-              <Input label="Titulo" value={brandForm.appName} onChange={(value) => setBrandForm({ ...brandForm, appName: value })} required />
+              <Input label="Título" value={brandForm.appName} onChange={(value) => setBrandForm({ ...brandForm, appName: value })} required />
               <Input label="Slogan" value={brandForm.slogan} onChange={(value) => setBrandForm({ ...brandForm, slogan: value })} />
               <ImageUploadField
                 label="Logo do sistema"
@@ -888,16 +888,16 @@ function ReportAdmin({
   return (
     <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
       <div className="space-y-6">
-        <Panel title="Relatorios" icon={<FileText size={20} />}>
+        <Panel title="Relatórios" icon={<FileText size={20} />}>
           <AuthNotice status={notice} />
           <form onSubmit={onApplyFilters} className="adrock-form-shell mt-4 space-y-3">
-            <Input label="Busca" value={reportFilters.search} onChange={(value) => onChangeReportFilters({ ...reportFilters, search: value })} placeholder="Titulo ou descricao" />
+            <Input label="Busca" value={reportFilters.search} onChange={(value) => onChangeReportFilters({ ...reportFilters, search: value })} placeholder="Título ou descrição" />
             <Select label="Cliente" value={reportFilters.clientId} onChange={(value) => onChangeReportFilters({ ...reportFilters, clientId: value })} options={clients.map((client) => ({ value: client.id, label: client.name }))} />
             <div className="grid gap-3 sm:grid-cols-2">
-              <Select label="Periodo" value={reportFilters.periodType} onChange={(value) => onChangeReportFilters({ ...reportFilters, periodType: value })} options={Object.entries(periodLabels).map(([value, label]) => ({ value, label }))} />
+              <Select label="Período" value={reportFilters.periodType} onChange={(value) => onChangeReportFilters({ ...reportFilters, periodType: value })} options={Object.entries(periodLabels).map(([value, label]) => ({ value, label }))} />
               <Select label="Status" value={reportFilters.status} onChange={(value) => onChangeReportFilters({ ...reportFilters, status: value })} options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} />
               <Input label="De" type="date" value={reportFilters.dateFrom} onChange={(value) => onChangeReportFilters({ ...reportFilters, dateFrom: value })} />
-              <Input label="Ate" type="date" value={reportFilters.dateTo} onChange={(value) => onChangeReportFilters({ ...reportFilters, dateTo: value })} />
+              <Input label="Até" type="date" value={reportFilters.dateTo} onChange={(value) => onChangeReportFilters({ ...reportFilters, dateTo: value })} />
             </div>
             <div className="flex flex-wrap gap-2">
               <PrimaryButton label="Filtrar" />
@@ -907,7 +907,7 @@ function ReportAdmin({
 
           <div className="mt-5 space-y-3">
             {reports.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum relatorio encontrado.</p>
+              <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum relatório encontrado.</p>
             ) : reports.map((report) => (
               <button
                 key={report.id}
@@ -928,29 +928,29 @@ function ReportAdmin({
         </Panel>
 
         {canManage ? (
-          <Panel title="Novo relatorio" icon={<Plus size={20} />}>
-            <ReportForm form={reportForm} clients={clients} onChange={onChangeReportForm} onSubmit={onCreateReport} submitLabel="Cadastrar relatorio" />
+          <Panel title="Novo relatório" icon={<Plus size={20} />}>
+            <ReportForm form={reportForm} clients={clients} onChange={onChangeReportForm} onSubmit={onCreateReport} submitLabel="Cadastrar relatório" />
           </Panel>
         ) : null}
       </div>
 
       <div className="space-y-6">
-        <Panel title="Editar relatorio" icon={<Save size={20} />}>
+        <Panel title="Editar relatório" icon={<Save size={20} />}>
           {selectedReportDetail && canManage ? (
             <div className="space-y-6">
-              <ReportForm form={reportEditForm} clients={clients} onChange={onChangeReportEditForm} onSubmit={onUpdateReport} submitLabel="Salvar relatorio" />
+              <ReportForm form={reportEditForm} clients={clients} onChange={onChangeReportEditForm} onSubmit={onUpdateReport} submitLabel="Salvar relatório" />
               <div className="flex flex-wrap gap-3">
-                <ActionButton label="Arquivar relatorio" onClick={onArchiveReport} danger icon={<Trash2 size={16} />} />
+                <ActionButton label="Arquivar relatório" onClick={onArchiveReport} danger icon={<Trash2 size={16} />} />
               </div>
             </div>
           ) : selectedReportDetail ? (
             <ReportReadOnly report={selectedReportDetail} />
           ) : (
-            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um relatorio.</p>
+            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um relatório.</p>
           )}
         </Panel>
 
-        <Panel title="Links do relatorio" icon={<Link2 size={20} />}>
+        <Panel title="Links do relatório" icon={<Link2 size={20} />}>
           {selectedReportDetail ? (
             <div className="space-y-5">
               <div className="space-y-2">
@@ -975,7 +975,7 @@ function ReportAdmin({
                     </div>
                   </div>
                 )) : (
-                  <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum link cadastrado neste relatorio.</p>
+                  <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum link cadastrado neste relatório.</p>
                 )}
               </div>
 
@@ -1000,7 +1000,7 @@ function ReportAdmin({
               ) : null}
             </div>
           ) : (
-            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um relatorio para ver os links.</p>
+            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um relatório para ver os links.</p>
           )}
         </Panel>
       </div>
@@ -1012,15 +1012,15 @@ function ReportForm({ form, clients, onChange, onSubmit, submitLabel }: { form: 
   return (
     <form onSubmit={onSubmit} className="adrock-form-shell space-y-4">
       <Select label="Cliente" value={form.clientId} onChange={(value) => onChange({ ...form, clientId: value })} options={clients.map((client) => ({ value: client.id, label: client.name }))} required />
-      <Input label="Titulo" value={form.title} onChange={(value) => onChange({ ...form, title: value })} required />
-      <Select label="Periodo" value={form.periodType} onChange={(value) => onChange({ ...form, periodType: value as ReportPeriodType })} options={Object.entries(periodLabels).map(([value, label]) => ({ value, label }))} />
-      <Input label="Rotulo do periodo" value={form.periodLabel} onChange={(value) => onChange({ ...form, periodLabel: value })} placeholder="Ex.: Julho/2026" />
+      <Input label="Título" value={form.title} onChange={(value) => onChange({ ...form, title: value })} required />
+      <Select label="Período" value={form.periodType} onChange={(value) => onChange({ ...form, periodType: value as ReportPeriodType })} options={Object.entries(periodLabels).map(([value, label]) => ({ value, label }))} />
+      <Input label="Rótulo do período" value={form.periodLabel} onChange={(value) => onChange({ ...form, periodLabel: value })} placeholder="Ex.: Julho/2026" />
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input label="Inicio" type="date" value={form.startsAt} onChange={(value) => onChange({ ...form, startsAt: value })} />
+        <Input label="Início" type="date" value={form.startsAt} onChange={(value) => onChange({ ...form, startsAt: value })} />
         <Input label="Fim" type="date" value={form.endsAt} onChange={(value) => onChange({ ...form, endsAt: value })} />
       </div>
       <Select label="Status" value={form.status} onChange={(value) => onChange({ ...form, status: value as ReportStatus })} options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} />
-      <Textarea label="Descricao" value={form.description} onChange={(value) => onChange({ ...form, description: value })} />
+      <Textarea label="Descrição" value={form.description} onChange={(value) => onChange({ ...form, description: value })} />
       <PrimaryButton label={submitLabel} />
     </form>
   );
@@ -1029,10 +1029,10 @@ function ReportForm({ form, clients, onChange, onSubmit, submitLabel }: { form: 
 function LinkForm({ form, onChange, onSubmit, submitLabel }: { form: LinkFormState; onChange: (form: LinkFormState) => void; onSubmit: (event: React.FormEvent) => void; submitLabel: string }) {
   return (
     <form onSubmit={onSubmit} className="adrock-form-shell space-y-4">
-      <Input label="Titulo do link" value={form.title} onChange={(value) => onChange({ ...form, title: value })} required />
+      <Input label="Título do link" value={form.title} onChange={(value) => onChange({ ...form, title: value })} required />
       <Input label="URL" type="url" value={form.url} onChange={(value) => onChange({ ...form, url: value })} required />
       <Select label="Tipo" value={form.destinationType} onChange={(value) => onChange({ ...form, destinationType: value as ReportLinkDestinationType })} options={Object.entries(destinationLabels).map(([value, label]) => ({ value, label }))} />
-      <Textarea label="Descricao" value={form.description} onChange={(value) => onChange({ ...form, description: value })} />
+      <Textarea label="Descrição" value={form.description} onChange={(value) => onChange({ ...form, description: value })} />
       <PrimaryButton label={submitLabel} />
     </form>
   );
@@ -1041,7 +1041,7 @@ function LinkForm({ form, onChange, onSubmit, submitLabel }: { form: LinkFormSta
 function LinkEditForm({ form, onChange, onSubmit }: { form: LinkEditFormState; onChange: (form: LinkEditFormState) => void; onSubmit: (event: React.FormEvent) => void }) {
   return (
     <form onSubmit={onSubmit} className="adrock-form-shell space-y-4">
-      <Input label="Titulo do link" value={form.title} onChange={(value) => onChange({ ...form, title: value })} required />
+      <Input label="Título do link" value={form.title} onChange={(value) => onChange({ ...form, title: value })} required />
       <Input label="URL" type="url" value={form.url} onChange={(value) => onChange({ ...form, url: value })} required />
       <Select label="Tipo" value={form.destinationType} onChange={(value) => onChange({ ...form, destinationType: value as ReportLinkDestinationType })} options={Object.entries(destinationLabels).map(([value, label]) => ({ value, label }))} />
       <div className="grid gap-3 sm:grid-cols-2">
@@ -1051,7 +1051,7 @@ function LinkEditForm({ form, onChange, onSubmit }: { form: LinkEditFormState; o
           { value: 'inactive', label: 'Inativo' }
         ]} />
       </div>
-      <Textarea label="Descricao" value={form.description} onChange={(value) => onChange({ ...form, description: value })} />
+      <Textarea label="Descrição" value={form.description} onChange={(value) => onChange({ ...form, description: value })} />
       <PrimaryButton label="Salvar link" />
     </form>
   );
@@ -1132,7 +1132,7 @@ function ClientAdmin({
                       <h3 className="font-bold text-neutral-950">{client.name}</h3>
                       <Badge>{client.status}</Badge>
                     </div>
-                    <p className="mt-1 text-sm text-neutral-600">{client.reports_count || 0} relatorios</p>
+                    <p className="mt-1 text-sm text-neutral-600">{client.reports_count || 0} relatórios</p>
                     <p className="mt-2 text-sm text-neutral-500">{client.description || 'Sem descricao.'}</p>
                   </div>
                 </div>
@@ -1151,7 +1151,7 @@ function ClientAdmin({
                 onChange={(value) => onChangeClientForm({ ...clientForm, logoUrl: value })}
                 onUpload={(file) => onUploadImage(file, (url) => onChangeClientForm({ ...clientForm, logoUrl: url }))}
               />
-              <Textarea label="Descricao" value={clientForm.description} onChange={(value) => onChangeClientForm({ ...clientForm, description: value })} />
+              <Textarea label="Descrição" value={clientForm.description} onChange={(value) => onChangeClientForm({ ...clientForm, description: value })} />
               <PrimaryButton label="Cadastrar cliente" />
             </form>
           </Panel>
@@ -1171,7 +1171,7 @@ function ClientAdmin({
                   onUpload={(file) => onUploadImage(file, (url) => onChangeClientEditForm({ ...clientEditForm, logoUrl: url }))}
                 />
                 <div className="lg:col-span-2">
-                  <Textarea label="Descricao" value={clientEditForm.description} onChange={(value) => onChangeClientEditForm({ ...clientEditForm, description: value })} />
+                  <Textarea label="Descrição" value={clientEditForm.description} onChange={(value) => onChangeClientEditForm({ ...clientEditForm, description: value })} />
                 </div>
                 <Select label="Status" value={clientEditForm.status} onChange={(value) => onChangeClientEditForm({ ...clientEditForm, status: value as ClientRecord['status'] })} options={[
                   { value: 'active', label: 'Ativo' },
@@ -1182,9 +1182,9 @@ function ClientAdmin({
 
               {canAssignUsers ? (
                 <div>
-                  <h3 className="mb-3 text-sm font-bold text-neutral-700">Usuarios com acesso</h3>
+                  <h3 className="mb-3 text-sm font-bold text-neutral-700">Usuários com acesso</h3>
                   {users.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-4 text-sm text-neutral-600">Cadastre usuarios antes de atribuir acesso.</p>
+                    <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-4 text-sm text-neutral-600">Cadastre usuários antes de atribuir acesso.</p>
                   ) : (
                     <div className="grid gap-2 md:grid-cols-2">
                       {users.map((record) => (
@@ -1207,7 +1207,7 @@ function ClientAdmin({
                 <PrimaryButton label="Salvar cliente" />
                 <ActionButton label="Arquivar ou excluir" onClick={onArchiveOrDeleteClient} danger icon={<Trash2 size={16} />} />
               </div>
-              <p className="text-xs font-semibold text-neutral-500">Clientes com relatorios sao arquivados para preservar historico; clientes sem relatorios podem ser excluidos.</p>
+              <p className="text-xs font-semibold text-neutral-500">Clientes com relatórios são arquivados para preservar histórico; clientes sem relatórios podem ser excluídos.</p>
             </form>
           ) : (
             <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um cliente para editar.</p>
@@ -1270,11 +1270,11 @@ function UserAdmin({
   return (
     <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
       <div className="space-y-6">
-        <Panel title="Usuarios" icon={<Users size={20} />}>
+        <Panel title="Usuários" icon={<Users size={20} />}>
           <AuthNotice status={notice} />
           <div className="mt-4 space-y-3">
             {users.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum usuario cadastrado.</p>
+              <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum usuário cadastrado.</p>
             ) : users.map((record) => (
               <button
                 key={record.id}
@@ -1295,19 +1295,19 @@ function UserAdmin({
           </div>
         </Panel>
 
-        <Panel title="Novo usuario" icon={<Plus size={20} />}>
+        <Panel title="Novo usuário" icon={<Plus size={20} />}>
           <form onSubmit={onCreateUser} className="adrock-form-shell space-y-4">
             <Input label="Nome" value={userForm.name} onChange={(value) => onChangeUserForm({ ...userForm, name: value })} required />
             <Input label="Email" type="email" value={userForm.email} onChange={(value) => onChangeUserForm({ ...userForm, email: value })} required />
             <Input label="Senha" type="password" value={userForm.password} onChange={(value) => onChangeUserForm({ ...userForm, password: value })} required minLength={8} />
             <Select label="Perfil" value={userForm.role} onChange={(value) => onChangeUserForm({ ...userForm, role: value as UserRecord['role'] })} options={roleOptions} />
-            <PrimaryButton label="Cadastrar usuario" />
+            <PrimaryButton label="Cadastrar usuário" />
           </form>
         </Panel>
       </div>
 
       <div className="space-y-6">
-        <Panel title="Editar usuario" icon={<Save size={20} />}>
+        <Panel title="Editar usuário" icon={<Save size={20} />}>
           {selectedUser ? (
             <form onSubmit={onUpdateUser} className="adrock-form-shell space-y-5">
               <div className="grid gap-4 lg:grid-cols-2">
@@ -1342,14 +1342,14 @@ function UserAdmin({
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <PrimaryButton label="Salvar usuario" />
+                <PrimaryButton label="Salvar usuário" />
                 <ActionButton label={selectedUser.status === 'active' ? 'Inativar' : 'Reativar'} onClick={onToggleStatus} />
                 <ActionButton label="Excluir" onClick={onDeleteUser} danger disabled={selectedUser.id === currentUserId} icon={<Trash2 size={16} />} />
               </div>
-              {selectedUser.id === currentUserId ? <p className="text-xs font-semibold text-neutral-500">O usuario logado nao pode excluir a propria conta.</p> : null}
+              {selectedUser.id === currentUserId ? <p className="text-xs font-semibold text-neutral-500">O usuário logado não pode excluir a própria conta.</p> : null}
             </form>
           ) : (
-            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um usuario para editar.</p>
+            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um usuário para editar.</p>
           )}
         </Panel>
 
@@ -1361,7 +1361,7 @@ function UserAdmin({
               <PrimaryButton label="Atualizar senha" />
             </form>
           ) : (
-            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um usuario para trocar senha.</p>
+            <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um usuário para trocar senha.</p>
           )}
         </Panel>
       </div>
@@ -1410,7 +1410,7 @@ function Dashboard({ clients, reports, selectedClient, selectedClientId, onSelec
       await navigator.clipboard.writeText(url);
       setCopyMessage('Link direto copiado.');
     } catch {
-      window.prompt('Copie o link direto do relatorio:', url);
+      window.prompt('Copie o link direto do relatório:', url);
       setCopyMessage('Link direto pronto para copiar.');
     }
   }
@@ -1419,7 +1419,7 @@ function Dashboard({ clients, reports, selectedClient, selectedClientId, onSelec
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard label="Clientes" value={clients.length} />
-        <MetricCard label="Relatorios visiveis" value={reports.length} />
+        <MetricCard label="Relatórios visíveis" value={reports.length} />
         <MetricCard label="Links cadastrados" value={reports.reduce((sum, report) => sum + (report.links_count || 0), 0)} />
       </div>
       <Panel title={selectedClient?.name || 'Dashboard'} icon={<FileText size={20} />}>
@@ -1433,7 +1433,7 @@ function Dashboard({ clients, reports, selectedClient, selectedClientId, onSelec
             {selectedClient.logo_url ? <img src={selectedClient.logo_url} alt="" className="h-14 w-14 rounded-lg object-contain" /> : null}
             <div>
               <h2 className="text-xl font-bold text-neutral-950">{selectedClient.name}</h2>
-              <p className="text-sm text-neutral-600">{selectedClient.description || 'Historico de relatorios publicados.'}</p>
+              <p className="text-sm text-neutral-600">{selectedClient.description || 'Histórico de relatórios publicados.'}</p>
             </div>
           </div>
         ) : null}
@@ -1459,7 +1459,7 @@ function ReportList({ reports, openedReport, loadingReportId, copyMessage, onOpe
   onCopyReportLink: (reportId: string) => void;
 }) {
   if (reports.length === 0) {
-    return <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum relatorio encontrado.</p>;
+    return <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum relatório encontrado.</p>;
   }
 
   return (
@@ -1505,7 +1505,7 @@ function ReportList({ reports, openedReport, loadingReportId, copyMessage, onOpe
                   <ExternalLink size={16} />
                 </a>
               )) : (
-                <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-4 text-sm text-neutral-600">Nenhum link ativo neste relatorio.</p>
+                <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-4 text-sm text-neutral-600">Nenhum link ativo neste relatório.</p>
               )}
             </div>
           ) : null}
@@ -1528,8 +1528,8 @@ function AuthShell({ brand, children }: { brand: SettingsRecord['brand']; childr
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
-            <MiniFeature label="Clientes" text="Acesso por cliente atribuido." />
-            <MiniFeature label="Periodos" text="Diario a anual no mesmo historico." />
+            <MiniFeature label="Clientes" text="Acesso por cliente atribuído." />
+            <MiniFeature label="Períodos" text="Diário a anual no mesmo histórico." />
             <MiniFeature label="Links" text="Looker, Drive, Sheets e dashboards." />
           </div>
         </section>
@@ -1619,7 +1619,7 @@ function ImageUploadField({ label, value, onChange, onUpload }: {
     try {
       await onUpload(file);
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : 'Nao foi possivel enviar a imagem.');
+      setError(uploadError instanceof Error ? uploadError.message : 'Não foi possível enviar a imagem.');
     } finally {
       setUploading(false);
     }
@@ -1642,7 +1642,7 @@ function ImageUploadField({ label, value, onChange, onUpload }: {
             {uploading ? 'Enviando...' : 'Subir imagem'}
             <input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" onChange={(event) => void handleFileChange(event)} disabled={uploading} />
           </label>
-          <p className="mt-2 text-xs font-semibold text-neutral-500">PNG, JPG, WebP, GIF ou SVG ate 2 MB.</p>
+          <p className="mt-2 text-xs font-semibold text-neutral-500">PNG, JPG, WebP, GIF ou SVG até 2 MB.</p>
           {error ? <p className="mt-2 text-xs font-semibold text-red-700">{error}</p> : null}
         </div>
       </div>
@@ -1753,18 +1753,23 @@ function FullScreenState({ title, text }: { title: string; text: string }) {
 function formatPeriod(report: ReportRecord) {
   if (report.starts_at && report.ends_at) return `${formatDate(report.starts_at)} a ${formatDate(report.ends_at)}`;
   if (report.starts_at) return formatDate(report.starts_at);
-  return 'Periodo nao informado';
+  return 'Período não informado';
 }
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value));
 }
 
+function toDateInputValue(value: string | null | undefined) {
+  if (!value) return '';
+  return value.slice(0, 10);
+}
+
 function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Nao foi possivel ler o arquivo.'));
+    reader.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
     reader.readAsDataURL(file);
   });
 }

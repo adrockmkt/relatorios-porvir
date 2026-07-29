@@ -29,11 +29,11 @@ router.put('/brand', requireAdmin, async (req, res) => {
   }
 
   if (slogan.length > 140) {
-    return res.status(400).json({ error: 'O slogan deve ter ate 140 caracteres.' });
+    return res.status(400).json({ error: 'O slogan deve ter até 140 caracteres.' });
   }
 
   if (topLogoUrl && !isValidLogoUrl(topLogoUrl)) {
-    return res.status(400).json({ error: 'Informe uma URL de logo valida ou um data URL de imagem.' });
+    return res.status(400).json({ error: 'Informe uma URL de logo válida ou um data URL de imagem.' });
   }
 
   await upsertSetting('app_name', appName, req.auth.user.id);
@@ -75,7 +75,7 @@ async function loadBrandSettings() {
 function toBrandSettings(appSettings) {
   return {
     appName: appSettings.app_name || 'Porvir Reports Hub',
-    slogan: appSettings.app_slogan || 'Historico de relatorios e entregas Ad Rock',
+    slogan: appSettings.app_slogan || 'Histórico de relatórios e entregas Ad Rock',
     topLogoUrl: appSettings.top_logo_url || '/adrock-logo.png',
     topLogoSize: 56
   };

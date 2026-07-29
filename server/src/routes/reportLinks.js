@@ -15,10 +15,10 @@ router.post('/', requireEditorRole, async (req, res) => {
   payload.sortOrder = payload.sortOrder ?? 0;
   payload.status = payload.status || 'active';
   if (!payload.reportId || !payload.title || !payload.url) {
-    return res.status(400).json({ error: 'Relatorio, titulo e URL sao obrigatorios.' });
+    return res.status(400).json({ error: 'Relatório, título e URL são obrigatórios.' });
   }
   if (!isValidUrl(payload.url)) {
-    return res.status(400).json({ error: 'Informe uma URL https valida.' });
+    return res.status(400).json({ error: 'Informe uma URL https válida.' });
   }
   const validationError = validateLinkPayload(payload);
   if (validationError) {
@@ -27,7 +27,7 @@ router.post('/', requireEditorRole, async (req, res) => {
 
   const clientId = await getReportClientId(payload.reportId);
   if (!clientId) {
-    return res.status(404).json({ error: 'Relatorio nao encontrado.' });
+    return res.status(404).json({ error: 'Relatório não encontrado.' });
   }
   if (!(await requireClientAccess(req, res, clientId))) return;
 
@@ -44,7 +44,7 @@ router.post('/', requireEditorRole, async (req, res) => {
 router.patch('/:id', requireEditorRole, async (req, res) => {
   const payload = normalizeLinkPayload(req.body);
   if (payload.url && !isValidUrl(payload.url)) {
-    return res.status(400).json({ error: 'Informe uma URL https valida.' });
+    return res.status(400).json({ error: 'Informe uma URL https válida.' });
   }
   const validationError = validateLinkPayload(payload, { partial: true });
   if (validationError) {
@@ -53,14 +53,14 @@ router.patch('/:id', requireEditorRole, async (req, res) => {
 
   const currentClientId = await getReportLinkClientId(req.params.id);
   if (!currentClientId) {
-    return res.status(404).json({ error: 'Link de relatorio nao encontrado.' });
+    return res.status(404).json({ error: 'Link de relatório não encontrado.' });
   }
   if (!(await requireClientAccess(req, res, currentClientId))) return;
 
   if (payload.reportId) {
     const nextClientId = await getReportClientId(payload.reportId);
     if (!nextClientId) {
-      return res.status(404).json({ error: 'Relatorio nao encontrado.' });
+      return res.status(404).json({ error: 'Relatório não encontrado.' });
     }
     if (!(await requireClientAccess(req, res, nextClientId))) return;
   }
@@ -80,7 +80,7 @@ router.patch('/:id', requireEditorRole, async (req, res) => {
     [req.params.id, payload.reportId, payload.title, payload.url, payload.destinationType, payload.description, payload.sortOrder, payload.status]
   );
   if (result.rows.length === 0) {
-    return res.status(404).json({ error: 'Link de relatorio nao encontrado.' });
+    return res.status(404).json({ error: 'Link de relatório não encontrado.' });
   }
   await logAudit({ req, action: 'report_link_updated', entityType: 'report_link', entityId: req.params.id, metadata: payload });
   res.json({ success: true });
@@ -89,7 +89,7 @@ router.patch('/:id', requireEditorRole, async (req, res) => {
 router.delete('/:id', requireEditorRole, async (req, res) => {
   const currentClientId = await getReportLinkClientId(req.params.id);
   if (!currentClientId) {
-    return res.status(404).json({ error: 'Link de relatorio nao encontrado.' });
+    return res.status(404).json({ error: 'Link de relatório não encontrado.' });
   }
   if (!(await requireClientAccess(req, res, currentClientId))) return;
 
@@ -117,13 +117,13 @@ function normalizeLinkPayload(body) {
 function validateLinkPayload(payload, { partial = false } = {}) {
   if (!partial || payload.destinationType) {
     if (payload.destinationType && !['looker_studio', 'google_drive', 'google_sheets', 'pdf', 'presentation', 'dashboard', 'document', 'other'].includes(payload.destinationType)) {
-      return 'Tipo de destino invalido.';
+      return 'Tipo de destino inválido.';
     }
   }
 
   if (!partial || payload.status) {
     if (payload.status && !['active', 'inactive'].includes(payload.status)) {
-      return 'Status de link invalido.';
+      return 'Status de link inválido.';
     }
   }
 

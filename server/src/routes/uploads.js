@@ -31,12 +31,12 @@ router.post('/images', requireEditorRole, async (req, res) => {
 
   const prefix = `data:${mimeType};base64,`;
   if (!dataUrl.startsWith(prefix)) {
-    return res.status(400).json({ error: 'Arquivo de imagem invalido.' });
+    return res.status(400).json({ error: 'Arquivo de imagem inválido.' });
   }
 
   const buffer = Buffer.from(dataUrl.slice(prefix.length), 'base64');
   if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) {
-    return res.status(400).json({ error: 'A imagem deve ter ate 2 MB.' });
+    return res.status(400).json({ error: 'A imagem deve ter até 2 MB.' });
   }
 
   const safeBaseName = slugify(path.parse(fileName).name || 'logo').slice(0, 60) || 'logo';

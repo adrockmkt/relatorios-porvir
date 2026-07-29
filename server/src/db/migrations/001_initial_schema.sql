@@ -142,6 +142,6 @@ for each row execute function set_updated_at();
 insert into app_settings (key, value)
 values
   ('app_name', 'Porvir Reports Hub'),
-  ('app_slogan', 'Historico de relatorios e entregas Ad Rock'),
+  ('app_slogan', 'Histórico de relatórios e entregas Ad Rock'),
   ('top_logo_url', '/adrock-logo.png')
 on conflict (key) do nothing;

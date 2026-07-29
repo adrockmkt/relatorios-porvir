@@ -41,15 +41,15 @@ router.post('/', requireEditorRole, async (req, res) => {
   const normalizedDescription = String(description || '').trim();
 
   if (!normalizedName) {
-    return res.status(400).json({ error: 'Nome do cliente e obrigatorio.' });
+    return res.status(400).json({ error: 'Nome do cliente é obrigatório.' });
   }
 
   if (!isValidClientStatus(status)) {
-    return res.status(400).json({ error: 'Status de cliente invalido.' });
+    return res.status(400).json({ error: 'Status de cliente inválido.' });
   }
 
   if (normalizedLogoUrl && !isValidLogoUrl(normalizedLogoUrl)) {
-    return res.status(400).json({ error: 'Informe uma URL de logo valida.' });
+    return res.status(400).json({ error: 'Informe uma URL de logo válida.' });
   }
 
   const id = generateId();
@@ -87,15 +87,15 @@ router.patch('/:id', requireEditorRole, async (req, res) => {
   const normalizedDescription = description === undefined ? null : String(description).trim();
 
   if (normalizedName !== null && !normalizedName) {
-    return res.status(400).json({ error: 'Nome do cliente e obrigatorio.' });
+    return res.status(400).json({ error: 'Nome do cliente é obrigatório.' });
   }
 
   if (status !== undefined && !isValidClientStatus(status)) {
-    return res.status(400).json({ error: 'Status de cliente invalido.' });
+    return res.status(400).json({ error: 'Status de cliente inválido.' });
   }
 
   if (normalizedLogoUrl && !isValidLogoUrl(normalizedLogoUrl)) {
-    return res.status(400).json({ error: 'Informe uma URL de logo valida.' });
+    return res.status(400).json({ error: 'Informe uma URL de logo válida.' });
   }
 
   const result = await pool.query(
@@ -117,7 +117,7 @@ router.patch('/:id', requireEditorRole, async (req, res) => {
   );
 
   if (result.rows.length === 0) {
-    return res.status(404).json({ error: 'Cliente nao encontrado.' });
+    return res.status(404).json({ error: 'Cliente não encontrado.' });
   }
 
   await logAudit({
@@ -138,7 +138,7 @@ router.delete('/:id', requireEditorRole, async (req, res) => {
   if (reportCount.rows[0].total > 0) {
     const result = await pool.query('update clients set status = $2, updated_at = now() where id = $1 returning id', [id, 'archived']);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Cliente nao encontrado.' });
+      return res.status(404).json({ error: 'Cliente não encontrado.' });
     }
     await logAudit({ req, action: 'client_archived', entityType: 'client', entityId: id });
     return res.json({ success: true, archived: true });
@@ -146,7 +146,7 @@ router.delete('/:id', requireEditorRole, async (req, res) => {
 
   const result = await pool.query('delete from clients where id = $1 returning id', [id]);
   if (result.rows.length === 0) {
-    return res.status(404).json({ error: 'Cliente nao encontrado.' });
+    return res.status(404).json({ error: 'Cliente não encontrado.' });
   }
   await logAudit({ req, action: 'client_deleted', entityType: 'client', entityId: id });
   res.json({ success: true });

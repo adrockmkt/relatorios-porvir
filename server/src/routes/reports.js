@@ -72,7 +72,7 @@ router.post('/', requireEditorRole, async (req, res) => {
   const payload = normalizeReportPayload(req.body);
   payload.status = payload.status || 'draft';
   if (!payload.clientId || !payload.title || !payload.periodType) {
-    return res.status(400).json({ error: 'Cliente, titulo e periodo sao obrigatorios.' });
+    return res.status(400).json({ error: 'Cliente, título e período são obrigatórios.' });
   }
 
   const validationError = validateReportPayload(payload);
@@ -117,9 +117,9 @@ router.get('/:id', async (req, res) => {
     [req.params.id]
   );
   const report = result.rows[0];
-  if (!report) return res.status(404).json({ error: 'Relatorio nao encontrado.' });
+  if (!report) return res.status(404).json({ error: 'Relatório não encontrado.' });
   if (!(await canAccessClient(req, report.client_id, report.status))) {
-    return res.status(403).json({ error: 'Voce nao tem acesso a este relatorio.' });
+    return res.status(403).json({ error: 'Você não tem acesso a este relatório.' });
   }
   const linkFilters = ['report_id = $1'];
   if (req.auth.user.role === 'viewer') {
@@ -141,7 +141,7 @@ router.patch('/:id', requireEditorRole, async (req, res) => {
 
   const currentClientId = await getReportClientId(req.params.id);
   if (!currentClientId) {
-    return res.status(404).json({ error: 'Relatorio nao encontrado.' });
+    return res.status(404).json({ error: 'Relatório não encontrado.' });
   }
   if (!(await requireClientAccess(req, res, currentClientId))) return;
   if (payload.clientId && !(await requireClientAccess(req, res, payload.clientId))) return;
@@ -177,7 +177,7 @@ router.patch('/:id', requireEditorRole, async (req, res) => {
     ]
   );
   if (result.rows.length === 0) {
-    return res.status(404).json({ error: 'Relatorio nao encontrado.' });
+    return res.status(404).json({ error: 'Relatório não encontrado.' });
   }
   await logAudit({ req, action: 'report_updated', entityType: 'report', entityId: req.params.id, metadata: payload });
   res.json({ success: true });
@@ -186,7 +186,7 @@ router.patch('/:id', requireEditorRole, async (req, res) => {
 router.delete('/:id', requireEditorRole, async (req, res) => {
   const currentClientId = await getReportClientId(req.params.id);
   if (!currentClientId) {
-    return res.status(404).json({ error: 'Relatorio nao encontrado.' });
+    return res.status(404).json({ error: 'Relatório não encontrado.' });
   }
   if (!(await requireClientAccess(req, res, currentClientId))) return;
 
@@ -213,22 +213,22 @@ function normalizeReportPayload(body) {
 function validateReportPayload(payload, { partial = false } = {}) {
   if (!partial || payload.periodType) {
     if (payload.periodType && !['daily', 'weekly', 'monthly', 'quarterly', 'semiannual', 'annual'].includes(payload.periodType)) {
-      return 'Periodo de relatorio invalido.';
+      return 'Período de relatório inválido.';
     }
   }
 
   if (!partial || payload.status) {
     if (payload.status && !['draft', 'published', 'archived'].includes(payload.status)) {
-      return 'Status de relatorio invalido.';
+      return 'Status de relatório inválido.';
     }
   }
 
   if (payload.startsAt && payload.endsAt && payload.startsAt > payload.endsAt) {
-    return 'A data inicial nao pode ser posterior a data final.';
+    return 'A data inicial não pode ser posterior à data final.';
   }
 
   if (payload.referenceMonth && (Number(payload.referenceMonth) < 1 || Number(payload.referenceMonth) > 12)) {
-    return 'Mes de referencia deve ficar entre 1 e 12.';
+    return 'Mês de referência deve ficar entre 1 e 12.';
   }
 
   return null;

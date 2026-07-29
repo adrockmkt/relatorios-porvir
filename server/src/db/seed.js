@@ -17,7 +17,7 @@ async function seed() {
       'Porvir',
       'porvir',
       '',
-      'Cliente inicial para organizacao dos relatorios publicados pela Ad Rock.',
+      'Cliente inicial para organização dos relatórios publicados pela Ad Rock.',
       'active'
     ]
   );
@@ -31,8 +31,8 @@ async function seed() {
     [
       reportId,
       clientId,
-      'Relatorio exemplo',
-      'Registro exemplo para validar a estrutura inicial. Substituir por relatorios reais.',
+      'Relatório exemplo',
+      'Registro exemplo para validar a estrutura inicial. Substituir por relatórios reais.',
       'monthly',
       'Exemplo',
       'draft'
@@ -49,7 +49,7 @@ async function seed() {
       'Link exemplo',
       'https://relatorios.porvir.org',
       'dashboard',
-      'Trocar pelo link real do relatorio.',
+      'Trocar pelo link real do relatório.',
       10,
       'inactive'
     ]

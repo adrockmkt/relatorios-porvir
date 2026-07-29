@@ -36,7 +36,7 @@ export async function userCanAccessClient(user, clientId) {
 export async function requireClientAccess(req, res, clientId) {
   const allowed = await userCanAccessClient(req.auth.user, clientId);
   if (!allowed) {
-    res.status(403).json({ error: 'Voce nao tem acesso a este cliente.' });
+    res.status(403).json({ error: 'Você não tem acesso a este cliente.' });
     return false;
   }
   return true;

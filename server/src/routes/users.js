@@ -109,12 +109,12 @@ router.patch('/:id', requireAdmin, async (req, res) => {
 router.delete('/:id', requireAdmin, async (req, res) => {
   const { id } = req.params;
   if (id === req.auth.user.id) {
-    return res.status(400).json({ error: 'Voce nao pode excluir o proprio usuario logado.' });
+    return res.status(400).json({ error: 'Você não pode excluir o próprio usuário logado.' });
   }
 
   const result = await pool.query('delete from users where id = $1 returning id, email', [id]);
   if (result.rows.length === 0) {
-    return res.status(404).json({ error: 'Usuario nao encontrado.' });
+    return res.status(404).json({ error: 'Usuário não encontrado.' });
   }
 
   await logAudit({
