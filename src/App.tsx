@@ -886,56 +886,57 @@ function ReportAdmin({
   onDeleteLink: () => void;
 }) {
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-      <div className="space-y-6">
-        <Panel title="Relatórios" icon={<FileText size={20} />}>
-          <AuthNotice status={notice} />
-          <form onSubmit={onApplyFilters} className="adrock-form-shell mt-4 space-y-3">
-            <Input label="Busca" value={reportFilters.search} onChange={(value) => onChangeReportFilters({ ...reportFilters, search: value })} placeholder="Título ou descrição" />
-            <Select label="Cliente" value={reportFilters.clientId} onChange={(value) => onChangeReportFilters({ ...reportFilters, clientId: value })} options={clients.map((client) => ({ value: client.id, label: client.name }))} />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Select label="Período" value={reportFilters.periodType} onChange={(value) => onChangeReportFilters({ ...reportFilters, periodType: value })} options={Object.entries(periodLabels).map(([value, label]) => ({ value, label }))} />
-              <Select label="Status" value={reportFilters.status} onChange={(value) => onChangeReportFilters({ ...reportFilters, status: value })} options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} />
-              <Input label="De" type="date" value={reportFilters.dateFrom} onChange={(value) => onChangeReportFilters({ ...reportFilters, dateFrom: value })} />
-              <Input label="Até" type="date" value={reportFilters.dateTo} onChange={(value) => onChangeReportFilters({ ...reportFilters, dateTo: value })} />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <PrimaryButton label="Filtrar" />
-              <ActionButton label="Limpar" onClick={onClearFilters} />
-            </div>
-          </form>
-
-          <div className="mt-5 space-y-3">
-            {reports.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum relatório encontrado.</p>
-            ) : reports.map((report) => (
-              <button
-                key={report.id}
-                type="button"
-                onClick={() => onSelectReport(report)}
-                className={`w-full rounded-2xl border p-4 text-left transition ${selectedReportId === report.id ? 'border-orange-300 bg-orange-50' : 'border-sky-100 bg-white hover:border-orange-200'}`}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-bold text-neutral-950">{report.title}</h3>
-                  <Badge>{statusLabels[report.status]}</Badge>
-                  <Badge>{periodLabels[report.period_type]}</Badge>
-                </div>
-                <p className="mt-1 text-sm text-neutral-600">{report.client_name} · {report.period_label || formatPeriod(report)}</p>
-                <p className="mt-2 text-sm font-semibold text-neutral-500">{report.links_count || 0} links</p>
-              </button>
-            ))}
-          </div>
+    <div className="space-y-6">
+      {canManage ? (
+        <Panel title="Novo relatório" icon={<Plus size={20} />}>
+          <ReportForm form={reportForm} clients={clients} onChange={onChangeReportForm} onSubmit={onCreateReport} submitLabel="Cadastrar relatório" />
         </Panel>
+      ) : null}
 
-        {canManage ? (
-          <Panel title="Novo relatório" icon={<Plus size={20} />}>
-            <ReportForm form={reportForm} clients={clients} onChange={onChangeReportForm} onSubmit={onCreateReport} submitLabel="Cadastrar relatório" />
+      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+        <div>
+          <Panel title="Relatórios" icon={<FileText size={20} />}>
+            <AuthNotice status={notice} />
+            <form onSubmit={onApplyFilters} className="adrock-form-shell mt-4 space-y-3">
+              <Input label="Busca" value={reportFilters.search} onChange={(value) => onChangeReportFilters({ ...reportFilters, search: value })} placeholder="Título ou descrição" />
+              <Select label="Cliente" value={reportFilters.clientId} onChange={(value) => onChangeReportFilters({ ...reportFilters, clientId: value })} options={clients.map((client) => ({ value: client.id, label: client.name }))} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Select label="Período" value={reportFilters.periodType} onChange={(value) => onChangeReportFilters({ ...reportFilters, periodType: value })} options={Object.entries(periodLabels).map(([value, label]) => ({ value, label }))} />
+                <Select label="Status" value={reportFilters.status} onChange={(value) => onChangeReportFilters({ ...reportFilters, status: value })} options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} />
+                <Input label="De" type="date" value={reportFilters.dateFrom} onChange={(value) => onChangeReportFilters({ ...reportFilters, dateFrom: value })} />
+                <Input label="Até" type="date" value={reportFilters.dateTo} onChange={(value) => onChangeReportFilters({ ...reportFilters, dateTo: value })} />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <PrimaryButton label="Filtrar" />
+                <ActionButton label="Limpar" onClick={onClearFilters} />
+              </div>
+            </form>
+
+            <div className="mt-5 max-h-[520px] space-y-3 overflow-y-auto pr-2">
+              {reports.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum relatório encontrado.</p>
+              ) : reports.map((report) => (
+                <button
+                  key={report.id}
+                  type="button"
+                  onClick={() => onSelectReport(report)}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${selectedReportId === report.id ? 'border-orange-300 bg-orange-50' : 'border-sky-100 bg-white hover:border-orange-200'}`}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-bold text-neutral-950">{report.title}</h3>
+                    <Badge>{statusLabels[report.status]}</Badge>
+                    <Badge>{periodLabels[report.period_type]}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-neutral-600">{report.client_name} · {report.period_label || formatPeriod(report)}</p>
+                  <p className="mt-2 text-sm font-semibold text-neutral-500">{report.links_count || 0} links</p>
+                </button>
+              ))}
+            </div>
           </Panel>
-        ) : null}
-      </div>
+        </div>
 
-      <div className="space-y-6">
-        <Panel title="Editar relatório" icon={<Save size={20} />}>
+        <div className="space-y-6">
+          <Panel title="Editar relatório" icon={<Save size={20} />}>
           {selectedReportDetail && canManage ? (
             <div className="space-y-6">
               <ReportForm form={reportEditForm} clients={clients} onChange={onChangeReportEditForm} onSubmit={onUpdateReport} submitLabel="Salvar relatório" />
@@ -948,9 +949,9 @@ function ReportAdmin({
           ) : (
             <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um relatório.</p>
           )}
-        </Panel>
+          </Panel>
 
-        <Panel title="Links do relatório" icon={<Link2 size={20} />}>
+          <Panel title="Links do relatório" icon={<Link2 size={20} />}>
           {selectedReportDetail ? (
             <div className="space-y-5">
               <div className="space-y-2">
@@ -1002,7 +1003,8 @@ function ReportAdmin({
           ) : (
             <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Selecione um relatório para ver os links.</p>
           )}
-        </Panel>
+          </Panel>
+        </div>
       </div>
     </div>
   );
