@@ -1270,11 +1270,23 @@ function UserAdmin({
   ];
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-      <div className="space-y-6">
+    <div className="space-y-6">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(300px,3fr)]">
+        <Panel title="Novo usuário" icon={<Plus size={20} />}>
+          <form onSubmit={onCreateUser} className="adrock-form-shell space-y-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Input label="Nome" value={userForm.name} onChange={(value) => onChangeUserForm({ ...userForm, name: value })} required />
+              <Input label="Email" type="email" value={userForm.email} onChange={(value) => onChangeUserForm({ ...userForm, email: value })} required />
+              <Input label="Senha" type="password" value={userForm.password} onChange={(value) => onChangeUserForm({ ...userForm, password: value })} required minLength={8} />
+              <Select label="Perfil" value={userForm.role} onChange={(value) => onChangeUserForm({ ...userForm, role: value as UserRecord['role'] })} options={roleOptions} />
+            </div>
+            <PrimaryButton label="Cadastrar usuário" />
+          </form>
+        </Panel>
+
         <Panel title="Usuários" icon={<Users size={20} />}>
           <AuthNotice status={notice} />
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 max-h-[440px] space-y-3 overflow-y-auto pr-2">
             {users.length === 0 ? (
               <p className="rounded-xl border border-dashed border-sky-200 bg-white/70 p-5 text-sm text-neutral-600">Nenhum usuário cadastrado.</p>
             ) : users.map((record) => (
@@ -1295,16 +1307,6 @@ function UserAdmin({
               </button>
             ))}
           </div>
-        </Panel>
-
-        <Panel title="Novo usuário" icon={<Plus size={20} />}>
-          <form onSubmit={onCreateUser} className="adrock-form-shell space-y-4">
-            <Input label="Nome" value={userForm.name} onChange={(value) => onChangeUserForm({ ...userForm, name: value })} required />
-            <Input label="Email" type="email" value={userForm.email} onChange={(value) => onChangeUserForm({ ...userForm, email: value })} required />
-            <Input label="Senha" type="password" value={userForm.password} onChange={(value) => onChangeUserForm({ ...userForm, password: value })} required minLength={8} />
-            <Select label="Perfil" value={userForm.role} onChange={(value) => onChangeUserForm({ ...userForm, role: value as UserRecord['role'] })} options={roleOptions} />
-            <PrimaryButton label="Cadastrar usuário" />
-          </form>
         </Panel>
       </div>
 
