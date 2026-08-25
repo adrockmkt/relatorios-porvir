@@ -53,6 +53,7 @@ const DEFAULT_BRAND: SettingsRecord['brand'] = {
 const periodLabels: Record<ReportPeriodType, string> = {
   daily: 'Diário',
   weekly: 'Semanal',
+  biweekly: 'Quinzenal',
   monthly: 'Mensal',
   quarterly: 'Trimestral',
   semiannual: 'Semestral',

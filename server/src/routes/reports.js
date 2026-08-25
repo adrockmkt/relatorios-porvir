@@ -212,7 +212,7 @@ function normalizeReportPayload(body) {
 
 function validateReportPayload(payload, { partial = false } = {}) {
   if (!partial || payload.periodType) {
-    if (payload.periodType && !['daily', 'weekly', 'monthly', 'quarterly', 'semiannual', 'annual'].includes(payload.periodType)) {
+    if (payload.periodType && !['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'semiannual', 'annual'].includes(payload.periodType)) {
       return 'Período de relatório inválido.';
     }
   }

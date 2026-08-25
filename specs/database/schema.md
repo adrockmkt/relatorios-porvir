@@ -81,7 +81,7 @@ Campos:
 - `client_id`
 - `title`
 - `description`
-- `period_type`: `daily`, `weekly`, `monthly`, `quarterly`, `semiannual`, `annual`
+- `period_type`: `daily`, `weekly`, `biweekly`, `monthly`, `quarterly`, `semiannual`, `annual`
 - `period_label`
 - `starts_at`
 - `ends_at`

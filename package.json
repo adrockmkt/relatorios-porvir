@@ -13,7 +13,8 @@
     "install:api": "npm --prefix server install",
     "install:all": "npm install && npm --prefix server install",
     "check:api": "npm --prefix server run check",
-    "check": "npm run build && npm run check:api"
+    "check:periods": "node scripts/check-report-periods.mjs",
+    "check": "npm run check:periods && npm run build && npm run check:api"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",

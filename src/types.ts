@@ -39,7 +39,7 @@ export interface ClientRecord {
   last_published_at?: string | null;
 }
 
-export type ReportPeriodType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
+export type ReportPeriodType = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
 export type ReportStatus = 'draft' | 'published' | 'archived';
 export type ReportLinkDestinationType = 'looker_studio' | 'google_drive' | 'google_sheets' | 'pdf' | 'presentation' | 'dashboard' | 'document' | 'other';
 

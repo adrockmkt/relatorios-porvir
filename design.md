@@ -68,7 +68,7 @@ Cada relatorio deve exibir:
 - cliente
 - titulo
 - periodo do relatorio
-- tipo: diario, semanal, mensal, trimestral, semestral, anual
+- tipo: diario, semanal, quinzenal, mensal, trimestral, semestral, anual
 - data inicial e final
 - status
 - observacoes

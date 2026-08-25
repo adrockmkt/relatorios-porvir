@@ -4,7 +4,7 @@ Portal privado para organizar, publicar e consultar links de relatorios da Ad Ro
 
 ## Objetivo
 
-Centralizar o historico de relatorios diarios, semanais, mensais, trimestrais, semestrais e anuais em um ambiente com login e senha, onde cada usuario acessa apenas os clientes atribuidos a ele.
+Centralizar o historico de relatorios diarios, semanais, quinzenais, mensais, trimestrais, semestrais e anuais em um ambiente com login e senha, onde cada usuario acessa apenas os clientes atribuidos a ele.
 
 O sistema nao armazena arquivos de relatorio. Ele cadastra links externos que apontam para Looker Studio, Google Drive, Google Sheets, PDFs, dashboards, apresentações, documentos ou qualquer outro destino usado na entrega.
 

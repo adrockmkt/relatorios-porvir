@@ -25,7 +25,7 @@ O sistema cadastra links externos. Ele nao faz upload nem armazena arquivos de r
 - Cliente
 - Titulo
 - Descricao
-- Tipo de periodo: diario, semanal, mensal, trimestral, semestral ou anual
+- Tipo de periodo: diario, semanal, quinzenal, mensal, trimestral, semestral ou anual
 - Rotulo do periodo, como `Julho/2026`
 - Data inicial
 - Data final

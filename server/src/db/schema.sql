@@ -57,7 +57,7 @@ create table if not exists reports (
   client_id uuid not null references clients(id) on delete cascade,
   title text not null,
   description text,
-  period_type text not null check (period_type in ('daily', 'weekly', 'monthly', 'quarterly', 'semiannual', 'annual')),
+  period_type text not null check (period_type in ('daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'semiannual', 'annual')),
   period_label text,
   starts_at date,
   ends_at date,
