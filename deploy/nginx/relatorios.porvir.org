@@ -17,6 +17,10 @@ server {
     proxy_set_header X-Forwarded-Proto $scheme;
   }
 
+  location ~* ^/uploads/.*\.svg$ {
+    return 404;
+  }
+
   location /uploads/ {
     alias /var/www/relatorios_porvir/uploads/;
     try_files $uri =404;

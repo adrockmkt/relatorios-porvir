@@ -13,8 +13,7 @@ const MIME_EXTENSIONS = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
-  'image/gif': 'gif',
-  'image/svg+xml': 'svg'
+  'image/gif': 'gif'
 };
 
 router.use(requireAuth);
@@ -26,7 +25,7 @@ router.post('/images', requireEditorRole, async (req, res) => {
   const extension = MIME_EXTENSIONS[mimeType];
 
   if (!extension) {
-    return res.status(400).json({ error: 'Use imagem PNG, JPG, WebP, GIF ou SVG.' });
+    return res.status(400).json({ error: 'Use imagem PNG, JPG, WebP ou GIF.' });
   }
 
   const prefix = `data:${mimeType};base64,`;

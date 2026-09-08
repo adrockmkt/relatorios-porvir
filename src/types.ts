@@ -8,12 +8,7 @@ export interface AuthUser {
 
 export interface HealthRecord {
   status: string;
-  database: string;
-  backup?: {
-    status: 'ok' | 'pending' | 'unavailable';
-    lastBackupAt: string | null;
-    file: string | null;
-  };
+  service: string;
 }
 
 export interface UserRecord {

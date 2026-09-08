@@ -92,7 +92,8 @@ Status em 2026-07-27:
 - banco: `relatorios_porvir`
 - backup diario: `relatorios-porvir-backup.timer`
 - uploads de logos: `/var/www/relatorios_porvir/uploads`
-- health: `https://relatorios.porvir.org/api/health`
+- uploads em SVG devem ser bloqueados no Nginx
+- health publico: `https://relatorios.porvir.org/api/health` deve retornar apenas status minimo
 
 Arquivos versionados para repetir a instalacao:
 

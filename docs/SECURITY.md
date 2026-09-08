@@ -77,3 +77,6 @@ Permitir exclusao definitiva somente quando:
 - variaveis sensiveis fora do codigo
 - backup diario do banco
 - logs de aplicacao
+- `/api/health` publico deve retornar apenas status minimo, sem detalhes de banco, erro ou backup
+- uploads de imagem nao aceitam SVG
+- Nginx deve bloquear acesso direto a SVG dentro de `/uploads`

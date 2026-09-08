@@ -1645,9 +1645,9 @@ function ImageUploadField({ label, value, onChange, onUpload }: {
           <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-bold text-neutral-700 transition hover:border-orange-200 hover:bg-orange-50">
             <Upload size={16} />
             {uploading ? 'Enviando...' : 'Subir imagem'}
-            <input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" onChange={(event) => void handleFileChange(event)} disabled={uploading} />
+            <input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => void handleFileChange(event)} disabled={uploading} />
           </label>
-          <p className="mt-2 text-xs font-semibold text-neutral-500">PNG, JPG, WebP, GIF ou SVG até 2 MB.</p>
+          <p className="mt-2 text-xs font-semibold text-neutral-500">PNG, JPG, WebP ou GIF até 2 MB.</p>
           {error ? <p className="mt-2 text-xs font-semibold text-red-700">{error}</p> : null}
         </div>
       </div>
