@@ -12,3 +12,5 @@ assert.match(healthRoute, /status:\s*'ok'/, 'Public health endpoint must keep a 
 assert.doesNotMatch(uploadsRoute, /svg/i, 'Image upload API must not accept SVG files.');
 assert.doesNotMatch(appSource, /image\/svg\+xml|SVG/, 'Image upload UI must not advertise SVG uploads.');
 assert.match(nginxConfig, /location\s+~\*\s+\^\/uploads\/\.\*\\\.svg\$/, 'Nginx must block direct access to SVG files in uploads.');
+assert.match(nginxConfig, /location\s+=\s+\/index\.html[\s\S]*no-cache, no-store, must-revalidate/, 'Nginx must prevent stale index.html caching after deployments.');
+assert.match(nginxConfig, /location\s+\/assets\/[\s\S]*immutable/, 'Nginx must cache versioned assets as immutable files.');
