@@ -17,7 +17,7 @@ Observacao operacional: o usuario disponivel no servidor e o mesmo usado pelo Ma
 - 1 instancia pequena para MVP
 - PostgreSQL local
 - Nginx como proxy reverso
-- Node.js para API
+- Node.js `20.19.0` ou superior para API e build do frontend
 - frontend buildado como arquivos estaticos
 - Certbot para HTTPS
 

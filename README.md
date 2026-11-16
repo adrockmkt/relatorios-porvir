@@ -71,6 +71,8 @@ O sistema nao armazena arquivos de relatorio. Ele cadastra links externos que ap
 
 ## Desenvolvimento local
 
+Requisito: Node.js `20.19.0` ou superior.
+
 Instalar dependencias:
 
 ```bash
